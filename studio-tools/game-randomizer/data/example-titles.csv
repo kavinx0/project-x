@@ -1,0 +1,5 @@
+title,universe_id,place_id,playing,visits,source,collected_at,url
+"Example Farm Simulator",1234567890,,1500,,format-example,2026-11-04,
+"Example Farm Simulator [UPDATE]",1234567890,,1620,,format-example,2026-11-04,
+"Example Tower Escape",,,,,format-example,2026-11-04,
+"Example ""Quoted"" Llama Kingdom, Deluxe",2345678901,,,,format-example,2026-11-04,
