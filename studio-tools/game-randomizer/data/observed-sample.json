@@ -1,5 +1,5 @@
 {
- "format": "game-idea-reels/observed-sample@1",
+ "format": "trendslop-randomizer/observed-sample@1",
  "collected_at": "2026-11-04T03:27:08+00:00",
  "collection_started_at": "2026-11-04T03:26:37+00:00",
  "method": "All non-empty Discover sorts returned by explore-api get-sorts for one anonymous session (default device/country), paged until no next token. Sponsored placements removed. Deduplicated by universe ID. Details added from games.roblox.com/v1/games.",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Collect a public sample of Roblox experience titles for the Game Idea Reels app.
+"""Collect a public sample of Roblox experience titles for the Roblox Trendslop Randomizer app.
 
 This is the optional "live refresh" collector. It runs on a computer or a CI
 job, never in the browser. It uses only public, unauthenticated endpoints and
@@ -34,7 +34,7 @@ import uuid
 SORTS_URL = "https://apis.roblox.com/explore-api/v1/get-sorts"
 GAMES_URL = "https://games.roblox.com/v1/games"
 BATCH = 50  # Games API rejects more than 50 universe IDs per request (observed Nov 2026)
-USER_AGENT = "game-idea-reels-collector/1.0"
+USER_AGENT = "trendslop-randomizer-collector/1.0"
 
 
 def get_json(url, params=None, retries=3):
@@ -125,7 +125,7 @@ def main():
     finished = dt.datetime.now(dt.timezone.utc)
 
     out = {
-        "format": "game-idea-reels/observed-sample@1",
+        "format": "trendslop-randomizer/observed-sample@1",
         "collected_at": finished.isoformat(timespec="seconds"),
         "collection_started_at": started.isoformat(timespec="seconds"),
         "method": (

@@ -1,6 +1,6 @@
-# Game Idea Reels
+# Roblox Trendslop Randomizer
 
-A slot-machine brainstorming tool for Roblox game titles. Three reels, **Verb / Determiner / Noun**, are combined under grammar rules (for example *Grow / Your / Arms*, *Escape From / The / Factory*, *Raise / A / Dragon*). Each roll comes with a short concept card.
+A slot-machine brainstorming tool for Roblox game titles. Every built-in verb and noun comes from a real Roblox chart title, so rolls remix the words that trending games actually use. Three reels, **Verb / Determiner / Noun**, are combined under grammar rules (for example *Grow / Your / Arms*, *Escape From / The / Factory*, *Raise / A / Dragon*). Each roll comes with a short concept card.
 
 Everything it generates is a brainstorming prompt. A random title is not a validated game idea, and the app makes no claim that it is.
 
@@ -27,7 +27,7 @@ game-randomizer/
 - **Coherent mode** keeps verb and noun pairs that share a meaning class. **Chaos mode** allows any pairing, but grammar still applies.
 - **Filters:**
   - Noun theme
-  - Vocabulary source: observed, curated, My words, or mixed
+  - Vocabulary source: observed (built-in), My words, or mixed
   - Noun number: singular, plural or uncountable
   - Sampling: uniform, or weighted by observed frequency
 - **Locks and filters:** a locked word stays even when a filter would exclude it. The settings panel notes this.
@@ -46,19 +46,22 @@ Settings, favorites, history and your words are saved in `localStorage`. If the 
 
 | Reel | Entries | Notes |
 |---|---|---|
-| Verbs | 264 | 45 are multi-word phrases with the preposition built in (*Escape From*, *Care For*, *Stay Alive In*) |
-| Determiners | 31 | Closed grammar set: *A/An*, *The*, *Your*, *Your Own*, *Every*, *These*, *99*, *A Lot of*, ∅ (no article)… |
-| Nouns | 682 | 1,294 noun forms (singular, plural, mass, proper). 96 are multi-word (*Space Station*, *Lemonade Stand*) |
+| Verbs | 83 | All appear in at least one sample title. 4 are multi-word (*Hide From*, *Work At*, *Dig To*, *Hide In*) |
+| Determiners | 31 | Closed grammar set, not taken from titles: *A/An*, *The*, *Your*, *Your Own*, *Every*, *These*, *99*, *A Lot of*, ∅ (no article)… |
+| Nouns | 193 | All appear in at least one sample title. 361 noun forms (singular, plural, mass, proper) |
 
-Under default settings (Coherent mode, all themes, mixed sources) there are **1,982,779 valid combinations**, counted under the actual rules. Chaos mode allows 6,370,848, and the unfiltered product of the three reels is 10,590,096. The app shows these numbers live for your current settings.
+Under default settings (Coherent mode, all themes, mixed sources) there are **177,014 valid combinations**, counted under the actual rules. Chaos mode allows 552,448, and the unfiltered product of the three reels is 928,853. The app shows these numbers live for your current settings.
 
-Themes: absurd, animals, body, collection, construction, exploration, factory, fantasy, food, jobs, nature, social, space, sports, survival, tech, vehicles.
+Nouns per theme: exploration 45, collection 23, animals 20, survival 20, vehicles 20, food 19, jobs 19, social 19, fantasy 18, absurd 15, construction 11, factory 10, body 8, space 8, sports 7, tech 4, nature 3. Thin themes give few combinations; the app explains when a filter leaves nothing to roll.
 
-### The three vocabulary sources are kept separate
+**Why it's narrowed:** an earlier version also shipped a hand-written "curated" bank (181 more verbs, 489 more nouns) for variety. It was removed so the built-in vocabulary is only words real Roblox titles use. You can add your own words in *My words*.
 
-- **Observed:** a built-in word whose exact wording appears in at least one title in the sample below. This is computed in the browser at load time, so each observed word links back to its source titles. Currently **83 verbs and 193 nouns**.
-- **Curated:** hand-written built-in words that don't appear in the sample. They broaden variety (181 verbs, 489 nouns).
-- **My words:** anything you add, including words accepted from a CSV import.
+### Where the words come from
+
+- **Observed (built-in):** every built-in verb and noun. Its exact wording appears in at least one title in the sample below. The match is recomputed in the browser at load time, and each word links back to its source titles.
+- **What was written by hand:** the grammar metadata on each word (meaning classes, plural forms, themes) and the determiner set. Titles don't carry that information.
+- **Refreshed samples:** if you load a newer sample and a built-in word no longer appears in it, the app labels that word *curated* instead of observed.
+- **My words:** anything you add, including words accepted from a CSV import. Always labeled separately.
 
 Observed counts are **per unique experience**: a word counts once per game, however often it repeats in that title.
 
@@ -140,7 +143,7 @@ Both scripts use only the Python standard library and public endpoints, with no 
 
 ## Deploying to GitHub Pages (step by step)
 
-These steps publish the app at `https://kavinx0.github.io/project-x/studio-tools/game-randomizer/`.
+These steps publish the randomizer at `https://kavinx0.github.io/project-x/studio-tools/game-randomizer/`.
 
 1. **Get the files onto `main`.** The app was pushed to the branch `claude/blissful-bell-98s4jd`. On GitHub, open the repository, click **Pull requests → New pull request**, choose that branch, then **Create pull request → Merge pull request**.
 2. Open the repository's **Settings** tab, then **Pages** in the left sidebar.

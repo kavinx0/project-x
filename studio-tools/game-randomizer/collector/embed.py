@@ -27,7 +27,7 @@ for e in src["experiences"]:
     rows.append([e["universe_id"], e["title"], e.get("playing"), e.get("visits"), e.get("genre"), charts, e.get("root_place_id")])
 
 compact = {
-    "format": "game-idea-reels/sample@1",
+    "format": "trendslop-randomizer/sample@1",
     "collected_at": src["collected_at"],
     "collection_started_at": src.get("collection_started_at"),
     "method": src["method"],
