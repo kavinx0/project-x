@@ -1,0 +1,3353 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Studio Name Randomizer</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Slot-machine name generator and shortlist for choosing a game studio name. Runs offline; names are unverified until you check them.">
+<style>
+/* Layout: brass-plaque marquee, a cabinet of 1–3 cream reel cards, the full name on a dark stage below; filters in a side rail; shortlist workbench in tabs. Single dark theme by design. */
+:root{
+  color-scheme: dark;
+  --bg:#16111c;        /* deep charcoal-plum */
+  --panel:#211a2a;
+  --raise:#2c2337;
+  --line:#3d3249;
+  --frame:#0c0910;     /* reel frame */
+  --cream:#f6efdd;     /* reel card */
+  --cream-2:#e8dcc0;
+  --wine:#3b1322;      /* reel text */
+  --crimson:#a3213b;
+  --crimson-hi:#c02c48;
+  --gold:#c9a45a;      /* restrained accent */
+  --gold-dim:#86703f;
+  --text:#efe8f2;
+  --muted:#ab9db6;
+  --ok:#6fcf97; --warn:#e9b45a;
+  --serif: "Iowan Old Style","Palatino Linotype",Palatino,"Book Antiqua",Georgia,"Times New Roman",serif;
+  --label: "Avenir Next Condensed","Arial Narrow","Roboto Condensed","Helvetica Neue",Arial,sans-serif;
+  --body: system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --mono: ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;
+  --reel-h: 118px;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg)}
+body{
+  margin:0;color:var(--text);font:15px/1.5 var(--body);
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(ellipse 60% 40% at 50% 0%, rgba(201,164,90,.12), transparent 70%),
+    repeating-linear-gradient(135deg, rgba(255,255,255,.018) 0 2px, transparent 2px 14px);
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:0 48px;
+}
+a{color:var(--gold)}
+button,select,input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.wrap{max-width:1200px;margin:0 auto}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* marquee */
+.marquee{display:grid;justify-items:center;gap:10px;padding-top:24px}
+.plaque{
+  display:flex;align-items:center;gap:18px;max-width:100%;
+  background:linear-gradient(180deg,#2d2238,#1b1422);border:2px solid var(--gold-dim);
+  outline:4px solid var(--frame);box-shadow:0 0 0 7px #2a2033,0 12px 40px rgba(0,0,0,.5);
+  border-radius:6px;padding:14px 26px;
+}
+.plaque svg{flex:none;width:34px;height:34px}
+.plaque h1{
+  margin:0;font:700 clamp(26px,5vw,50px)/1 var(--serif);letter-spacing:.06em;font-variant:small-caps;text-align:center;
+  color:var(--cream);text-shadow:0 2px 0 var(--crimson),0 3px 0 #000;text-wrap:balance
+}
+.ribbon{font:700 12px/1 var(--label);letter-spacing:.22em;text-transform:uppercase;color:var(--gold);text-align:center}
+@media (max-width:520px){.plaque svg{display:none}.plaque{padding:12px 16px}}
+
+/* layout */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:22px;margin-top:22px;align-items:start}
+@media (max-width:980px){.layout{grid-template-columns:minmax(0,1fr)}}
+
+.modebar{display:flex;gap:10px;flex-wrap:wrap;justify-content:space-between;align-items:center;margin-bottom:12px}
+.seg{display:inline-flex;border:2px solid var(--frame);border-radius:6px;overflow:hidden;background:var(--panel)}
+.seg button{cursor:pointer;border:0;background:transparent;padding:8px 14px;font:700 13px/1 var(--label);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--crimson);color:#fff}
+.seg.small button{padding:7px 11px;font-size:12px}
+
+.cabinet{
+  background:linear-gradient(180deg,#261e30,#1c1524);border:5px solid var(--frame);border-radius:12px;
+  box-shadow:inset 0 0 0 2px var(--gold-dim),8px 8px 0 #000;padding:20px;
+}
+.reels{display:grid;gap:14px}
+.reel{display:grid;gap:8px;min-width:0}
+.reel-label{justify-self:center;font:700 12px/1 var(--label);letter-spacing:.2em;text-transform:uppercase;color:var(--gold)}
+.window{
+  position:relative;height:var(--reel-h);overflow:hidden;border-radius:6px;
+  border:5px solid var(--frame);box-shadow:inset 0 0 0 2px var(--gold-dim),4px 4px 0 #000;
+  background:linear-gradient(180deg,rgba(0,0,0,.16),transparent 22%,transparent 78%,rgba(0,0,0,.16)),linear-gradient(180deg,var(--cream),var(--cream-2));
+}
+.window.locked{box-shadow:inset 0 0 0 3px var(--crimson),4px 4px 0 #000}
+.strip{will-change:transform}
+.cell{height:var(--reel-h);display:grid;place-items:center;padding:6px 12px;text-align:center;overflow:hidden}
+.word{display:block;max-width:100%;font:700 44px/1.02 var(--serif);color:var(--wine);overflow-wrap:break-word;text-wrap:balance}
+.cell.filler .word{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:28px;opacity:.7;filter:blur(.5px)}
+.note{display:block;font:700 10px/1.2 var(--label);letter-spacing:.14em;text-transform:uppercase;color:#7d6a58;margin-top:4px}
+.window.landed{animation:land .3s ease-out}
+@keyframes land{30%{transform:translateY(4px)}100%{transform:none}}
+.reel-tools{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.chip{cursor:pointer;display:inline-flex;align-items:center;gap:5px;background:var(--raise);border:1px solid var(--line);border-radius:999px;padding:4px 11px;font-size:12.5px;font-weight:600}
+.chip:hover:not(:disabled){border-color:var(--gold-dim)}
+.chip[aria-pressed="true"]{background:var(--crimson);border-color:var(--crimson);color:#fff}
+.chip:disabled{opacity:.45;cursor:not-allowed}
+
+.roll{
+  margin-top:18px;width:100%;cursor:pointer;color:#fff;
+  font:800 clamp(19px,2.8vw,27px)/1 var(--label);letter-spacing:.16em;text-transform:uppercase;
+  background:linear-gradient(180deg,var(--crimson-hi),var(--crimson));border:3px solid var(--frame);border-radius:6px;
+  box-shadow:inset 0 0 0 2px var(--gold-dim),5px 5px 0 #000;padding:17px 10px 15px;text-shadow:0 2px 0 rgba(0,0,0,.5);transition:transform .08s
+}
+.roll:hover:not(:disabled){filter:brightness(1.08)}
+.roll:active:not(:disabled){transform:translate(2px,2px);box-shadow:inset 0 0 0 2px var(--gold-dim),3px 3px 0 #000}
+.roll:disabled{cursor:not-allowed;filter:grayscale(.6) brightness(.8)}
+.status{min-height:1.4em;margin:10px 2px 0;font-size:13.5px;color:var(--muted)}
+.status.problem{color:var(--warn)}
+.hint{color:var(--muted);font-size:12px;margin:4px 2px 0}
+kbd{font:600 11px var(--mono);background:#000;border:1px solid var(--line);border-radius:3px;padding:1px 5px}
+
+@media (max-width:640px){
+  :root{--reel-h:84px}
+  .reels{grid-template-columns:minmax(0,1fr)!important;gap:10px}
+  .reel{grid-template-columns:76px minmax(0,1fr);align-items:center;column-gap:8px}
+  .reel-label{grid-row:1/3;justify-self:start;font-size:10.5px;letter-spacing:.12em;white-space:normal}
+  .word{font-size:34px}
+  .cabinet{padding:14px}
+}
+
+/* result stage */
+.stage{margin-top:20px;background:var(--frame);border-radius:10px;padding:22px 22px 18px;box-shadow:inset 0 0 0 1px var(--gold-dim)}
+.stage .eyebrow{font:700 11px/1 var(--label);letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+.stage h2{margin:10px 0 0;font:700 clamp(30px,5.4vw,58px)/1.05 var(--serif);color:var(--cream);text-wrap:balance;overflow-wrap:anywhere;padding-bottom:12px;border-bottom:1px solid var(--gold-dim)}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.pill{font:700 11px/1 var(--label);letter-spacing:.1em;text-transform:uppercase;padding:5px 8px;border-radius:3px;border:1px solid var(--line);color:var(--muted)}
+.pill.warn{border-color:var(--warn);color:var(--warn)}
+.notes{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:4px;font-size:13.5px;color:var(--muted)}
+.notes b{color:var(--text);font-weight:600}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.btn{cursor:pointer;background:var(--raise);border:1px solid var(--line);border-radius:5px;padding:7px 12px;font-weight:600;font-size:13.5px}
+.btn:hover:not(:disabled){border-color:var(--gold-dim)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.primary{background:var(--gold);border-color:var(--gold);color:#1b1422}
+.btn.danger{border-color:#6b2333;color:#ffb3c0}
+.btn.small{padding:4px 9px;font-size:12.5px}
+
+/* filters rail */
+.rail{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.rail summary{cursor:pointer;font:700 13px/1 var(--label);letter-spacing:.18em;text-transform:uppercase;color:var(--gold);list-style:none;display:flex;justify-content:space-between}
+.rail summary::-webkit-details-marker{display:none}
+.rail summary::after{content:"▾"}
+.rail details:not([open]) summary::after{content:"▸"}
+.fields{display:grid;gap:11px;margin-top:12px}
+.field{display:grid;gap:4px}
+.field label,.field .lbl{font:700 11px/1.2 var(--label);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+select,input[type=search],input[type=text],input[type=date],textarea{width:100%;background:#120e17;border:1px solid var(--line);border-radius:5px;padding:7px 9px}
+textarea{font:13px/1.45 var(--mono);resize:vertical}
+input[type=range]{width:100%;accent-color:var(--gold)}
+.check{display:flex;gap:8px;align-items:center;font-size:14px}
+.check input{width:17px;height:17px;accent-color:var(--gold)}
+.small{font-size:12.5px;color:var(--muted)}
+.count{font-variant-numeric:tabular-nums;font-family:var(--mono);font-size:12.5px}
+.notice{border-left:3px solid var(--warn);background:#2a1f12;padding:8px 10px;border-radius:4px;font-size:13px;margin-top:10px}
+.notice.info{border-color:var(--gold-dim);background:#1d1824}
+
+/* workbench */
+.bench{margin-top:30px}
+.tabs{display:flex;gap:2px;flex-wrap:wrap;border-bottom:2px solid var(--frame)}
+.tabs button{cursor:pointer;background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:7px 7px 0 0;padding:9px 14px 8px;font:700 12.5px/1 var(--label);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--raise);color:var(--gold)}
+.tabpanel{background:var(--raise);border:1px solid var(--line);border-top:0;border-radius:0 0 10px 10px;padding:18px}
+.tabpanel h3{margin:18px 0 8px;font:700 13px/1.2 var(--label);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.tabpanel h3:first-child{margin-top:0}
+.tabpanel p{max-width:74ch}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.list{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+.list>li{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px}
+.fav-head{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+.fav-name{font:700 22px/1.15 var(--serif);color:var(--cream);overflow-wrap:anywhere;min-width:0}
+.meta{font-size:12px;color:var(--muted)}
+.fav-body{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:10px}
+@media (max-width:760px){.fav-body{grid-template-columns:minmax(0,1fr)}}
+.checklist{display:grid;gap:5px}
+.checklist label{display:grid;grid-template-columns:minmax(0,1fr) 96px;gap:8px;align-items:center;font-size:13px}
+.empty{color:var(--muted);font-style:italic}
+.tablewrap{overflow-x:auto;margin-top:10px;border:1px solid var(--line);border-radius:6px}
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{text-align:left;padding:6px 9px;border-bottom:1px solid var(--line);vertical-align:top}
+th{position:sticky;top:0;background:var(--panel);font:700 11px/1.2 var(--label);letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+td.num{text-align:right;font-variant-numeric:tabular-nums;font-family:var(--mono)}
+.badge{display:inline-block;font:700 10px/1 var(--label);letter-spacing:.08em;text-transform:uppercase;padding:3px 6px;border-radius:3px;white-space:nowrap;border:1px solid var(--line)}
+.b-builtin{color:var(--muted)}
+.b-custom{background:var(--gold);border-color:var(--gold);color:#1b1422}
+.b-hidden{color:#ff9fb0;border-color:#6b2333}
+.mono{font-family:var(--mono);font-size:12.5px}
+pre.mono{white-space:pre-wrap;background:#120e17;border:1px solid var(--line);border-radius:6px;padding:10px;margin:8px 0}
+.links{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:760px){.links{grid-template-columns:minmax(0,1fr)}}
+.links section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:12px;min-width:0}
+.links h4{margin:0 0 6px;font:700 12px/1.2 var(--label);letter-spacing:.14em;text-transform:uppercase;color:var(--gold)}
+.links ul{margin:0;padding-left:18px;font-size:13.5px}
+.links li{margin:3px 0;overflow-wrap:anywhere}
+.q{display:flex;gap:6px;align-items:center;margin:4px 0;flex-wrap:wrap}
+.q code{font:12.5px var(--mono);background:#120e17;border:1px solid var(--line);border-radius:4px;padding:3px 6px;overflow-wrap:anywhere;min-width:0}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+@media (max-width:820px){.grid3{grid-template-columns:minmax(0,1fr)}}
+.kv{display:grid;grid-template-columns:minmax(110px,auto) minmax(0,1fr);gap:4px 14px;font-size:13.5px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.cmp td,.cmp th{min-width:150px}
+.cmp th:first-child,.cmp td:first-child{min-width:130px;color:var(--muted)}
+
+dialog{background:var(--raise);color:var(--text);border:2px solid var(--frame);border-radius:10px;box-shadow:0 0 0 1px var(--gold-dim),10px 10px 0 #000;width:min(720px,calc(100vw - 32px));padding:18px}
+dialog::backdrop{background:rgba(6,3,10,.72)}
+.toast{position:fixed;left:50%;bottom:calc(18px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--gold);color:#1b1422;font-weight:700;padding:9px 16px;border-radius:6px;box-shadow:4px 4px 0 #000;z-index:20;max-width:calc(100vw - 32px)}
+footer{margin-top:28px;color:var(--muted);font-size:12.5px;text-align:center}
+
+@media (prefers-reduced-motion: reduce){.window.landed{animation:none}}
+body.reduce-motion .window.landed{animation:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="marquee">
+  <div class="plaque">
+    <svg viewBox="0 0 40 40" aria-hidden="true"><g fill="none" stroke="#c9a45a" stroke-width="1.6"><circle cx="20" cy="20" r="6"/><path d="M20 2v8M20 30v8M2 20h8M30 20h8M7.3 7.3l5.6 5.6M27.1 27.1l5.6 5.6M7.3 32.7l5.6-5.6M27.1 12.9l5.6-5.6"/></g><circle cx="20" cy="20" r="2.4" fill="#a3213b"/></svg>
+    <h1>Studio Name Randomizer</h1>
+    <svg viewBox="0 0 40 40" aria-hidden="true"><g fill="none" stroke="#c9a45a" stroke-width="1.6"><circle cx="20" cy="20" r="6"/><path d="M20 2v8M20 30v8M2 20h8M30 20h8M7.3 7.3l5.6 5.6M27.1 27.1l5.6 5.6M7.3 32.7l5.6-5.6M27.1 12.9l5.6-5.6"/></g><circle cx="20" cy="20" r="2.4" fill="#a3213b"/></svg>
+  </div>
+  <div class="ribbon">Pick a name worth keeping</div>
+</header>
+
+<div class="layout">
+  <section aria-labelledby="mach-h">
+    <h2 id="mach-h" class="sr">Name machine</h2>
+    <div class="modebar">
+      <div class="seg" role="group" aria-label="Naming mode">
+        <button type="button" id="mode-composed" aria-pressed="true">Composed</button>
+        <button type="button" id="mode-single" aria-pressed="false">Single name</button>
+        <button type="button" id="mode-phrase" aria-pressed="false">Phrase</button>
+      </div>
+      <div class="seg small" role="group" aria-label="Style">
+        <button type="button" id="style-coherent" aria-pressed="true">Coherent</button>
+        <button type="button" id="style-experimental" aria-pressed="false">Experimental</button>
+      </div>
+    </div>
+    <div class="cabinet">
+      <div class="reels" id="reels"></div>
+      <button class="roll" id="roll" type="button">Roll studio name</button>
+      <p class="status" id="status" role="status" aria-live="polite"></p>
+      <p class="hint">Keys: <kbd>R</kbd> roll · <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> lock a reel · <kbd>F</kbd> shortlist · <kbd>C</kbd> copy. Shortcuts pause while you type.</p>
+    </div>
+
+    <div class="stage" aria-labelledby="name-out">
+      <div class="eyebrow">Full studio name</div>
+      <h2 id="name-out">—</h2>
+      <div class="pills" id="pills"></div>
+      <ul class="notes" id="notes"></ul>
+      <div class="actions">
+        <button class="btn primary" type="button" id="fav">☆ Add to shortlist</button>
+        <button class="btn" type="button" id="copy">Copy name</button>
+        <button class="btn" type="button" id="lookup">Look it up</button>
+      </div>
+    </div>
+  </section>
+
+  <aside class="rail" aria-label="Filters">
+    <details id="filters-box" open>
+      <summary>Filters</summary>
+      <div class="fields">
+        <div class="field"><label for="f-theme">Theme</label><select id="f-theme"></select></div>
+        <div class="field"><label for="f-tone">Tone</label><select id="f-tone"></select></div>
+        <div class="field"><label for="f-len">Max length: <span id="f-len-v" class="count"></span> characters</label><input type="range" id="f-len" min="10" max="40" step="1"></div>
+        <div class="field"><label for="f-suffix">Suffix</label>
+          <select id="f-suffix"><option value="roll">Roll it (no suffix is one option)</option><option value="always">Always add a suffix</option><option value="none">No suffix</option></select></div>
+        <div class="field"><label for="f-sufstyle">Suffix words</label>
+          <select id="f-sufstyle"><option value="conventional">Conventional only</option><option value="all">Conventional + experimental</option></select></div>
+        <div class="field"><label for="f-allit">Alliteration</label>
+          <select id="f-allit"><option value="some">Allow a little</option><option value="avoid">Avoid</option><option value="prefer">Prefer</option></select></div>
+        <label class="check"><input type="checkbox" id="f-invented"> Include invented words</label>
+        <label class="check"><input type="checkbox" id="f-foreign"> Include non-English words</label>
+        <div class="field"><label for="f-vocab">Vocabulary</label>
+          <select id="f-vocab"><option value="mixed">Built-in + my words</option><option value="custom">My words only</option></select></div>
+        <label class="check"><input type="checkbox" id="f-sound"> Sound effects</label>
+        <label class="check"><input type="checkbox" id="f-motion"> Reduce motion</label>
+        <button class="btn" type="button" id="reset">Reset filters</button>
+        <div class="small" id="combo-line"></div>
+        <div id="lock-notes"></div>
+      </div>
+    </details>
+  </aside>
+</div>
+
+<section class="bench" aria-label="Workbench">
+  <div class="tabs" role="tablist">
+    <button role="tab" type="button" id="tab-short" aria-controls="p-short" aria-selected="true">Shortlist</button>
+    <button role="tab" type="button" id="tab-compare" aria-controls="p-compare" aria-selected="false">Compare</button>
+    <button role="tab" type="button" id="tab-history" aria-controls="p-history" aria-selected="false">History</button>
+    <button role="tab" type="button" id="tab-look" aria-controls="p-look" aria-selected="false">Look it up</button>
+    <button role="tab" type="button" id="tab-bank" aria-controls="p-bank" aria-selected="false">Word bank</button>
+    <button role="tab" type="button" id="tab-add" aria-controls="p-add" aria-selected="false">Add words</button>
+    <button role="tab" type="button" id="tab-how" aria-controls="p-how" aria-selected="false">How it works</button>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="p-short" aria-labelledby="tab-short">
+    <div class="row">
+      <select id="s-filter" aria-label="Show" style="max-width:190px"><option value="all">All saved names</option><option value="shortlist">Shortlist</option><option value="maybe">Maybe</option><option value="none">No label</option></select>
+      <button class="btn" type="button" id="exp-json">Export JSON</button>
+      <button class="btn" type="button" id="exp-txt">Export text</button>
+      <label class="btn" for="imp-fav" style="display:inline-block">Import JSON</label><input type="file" id="imp-fav" accept=".json,application/json" class="sr">
+      <button class="btn danger" type="button" id="clear-fav">Clear all saved names</button>
+    </div>
+    <p class="small">Saved names live in this browser only. Export a JSON backup now and then; clearing site data or switching browsers loses them.</p>
+    <ul class="list" id="fav-list"></ul>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="p-compare" aria-labelledby="tab-compare" hidden>
+    <p class="small">Tick “Compare” on up to five saved names. Counts are mechanical; the syllable figure is a rough spelling-based estimate. Nothing here scores the names. That judgment is yours.</p>
+    <div id="cmp-out"></div>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="p-history" aria-labelledby="tab-history" hidden>
+    <div class="row"><button class="btn danger" type="button" id="clear-hist">Clear history</button><span class="small">Keeps your last 50 rolls.</span></div>
+    <ul class="list" id="hist-list"></ul>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="p-look" aria-labelledby="tab-look" hidden>
+    <div id="look-out"></div>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="p-bank" aria-labelledby="tab-bank" hidden>
+    <div id="bank-summary"></div>
+    <h3>Browse and edit</h3>
+    <div class="row">
+      <input type="search" id="b-search" placeholder="Search words, meanings, tags…" aria-label="Search word bank" style="max-width:300px">
+      <select id="b-cat" aria-label="Category" style="max-width:180px"></select>
+      <select id="b-src" aria-label="Source" style="max-width:170px"><option value="all">All sources</option><option value="builtin">Built-in</option><option value="custom">My words</option><option value="hidden">Hidden</option></select>
+      <span class="small" id="b-count"></span>
+    </div>
+    <div class="tablewrap" style="max-height:560px;overflow:auto">
+      <table><thead><tr><th>Entry</th><th>Category</th><th>Source</th><th>Tags</th><th>Meaning / notes</th><th>Actions</th></tr></thead><tbody id="b-body"></tbody></table>
+    </div>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" type="button" id="bank-export">Export my words (JSON)</button>
+      <label class="btn" for="bank-import" style="display:inline-block">Import words (JSON)</label><input type="file" id="bank-import" accept=".json,application/json" class="sr">
+      <button class="btn danger" type="button" id="bank-restore">Restore defaults</button>
+    </div>
+    <div id="bank-report"></div>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="p-add" aria-labelledby="tab-add" hidden>
+    <p>Add one entry per line. A plain word is enough; options after <span class="mono">|</span> are optional. You'll see a preview before anything is added. Duplicates are skipped, ignoring capital letters and extra spaces.</p>
+    <div class="row">
+      <select id="a-cat" aria-label="Add to category" style="max-width:220px"></select>
+    </div>
+    <textarea id="a-text" rows="8" aria-label="New entries" style="margin-top:8px" placeholder="Lanternfish | t=nature | tone=strange&#10;Kelip | k=invented | say=KEH-lip&#10;Paper Harbor"></textarea>
+    <div class="row" style="margin-top:8px"><button class="btn primary" type="button" id="a-preview">Preview</button></div>
+    <div id="a-out"></div>
+    <h3>Options</h3>
+    <div class="tablewrap"><table><thead><tr><th>Option</th><th>Meaning</th><th>Example</th></tr></thead><tbody>
+      <tr><td class="mono">t=</td><td>Themes: nature, landscape, built, science, myth, abstract, playful, everyday, malay</td><td class="mono">t=nature,landscape</td></tr>
+      <tr><td class="mono">tone=</td><td>Tones: elegant, dark, bright, quiet, playful, strange, bold, warm</td><td class="mono">tone=quiet</td></tr>
+      <tr><td class="mono">k=</td><td>Kind: word (default), name, invented, foreign</td><td class="mono">k=invented</td></tr>
+      <tr><td class="mono">lang=</td><td>Language of a non-English word</td><td class="mono">lang=Malay</td></tr>
+      <tr><td class="mono">mean=</td><td>Meaning or origin (SSM asks for this for non-English or invented words)</td><td class="mono">mean=firefly</td></tr>
+      <tr><td class="mono">say=</td><td>Pronunciation guide</td><td class="mono">say=KEH-lip</td></tr>
+      <tr><td class="mono">r=</td><td>Modifiers only: adj, noun, ord (Second), num (Seven → plural core)</td><td class="mono">r=num</td></tr>
+      <tr><td class="mono">n=m / pl=</td><td>Core words only: uncountable, or an irregular plural</td><td class="mono">pl=Geese</td></tr>
+      <tr><td class="mono">g=</td><td>Meaning group; two words in the same group never pair (Lunar + Moon)</td><td class="mono">g=moon</td></tr>
+      <tr><td class="mono">s=</td><td>Suffixes only: conventional or experimental</td><td class="mono">s=experimental</td></tr>
+      <tr><td class="mono">e</td><td>Experimental mode only</td><td class="mono">Spatula | e</td></tr>
+    </tbody></table></div>
+  </div>
+
+  <div class="tabpanel" role="tabpanel" id="p-how" aria-labelledby="tab-how" hidden>
+    <div id="how-out"></div>
+  </div>
+</section>
+
+<footer>Runs entirely in your browser: no accounts, no network calls when you roll, no AI. Generated names are unverified until you check them.</footer>
+</div>
+
+<dialog id="dlg" aria-labelledby="dlg-h">
+  <h3 id="dlg-h" style="margin:0 0 10px;font:700 14px/1 var(--label);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)">Export</h3>
+  <textarea id="dlg-text" rows="14" readonly aria-label="Export contents"></textarea>
+  <div class="row" style="margin-top:10px;justify-content:flex-end">
+    <button class="btn" type="button" id="dlg-copy">Copy</button>
+    <button class="btn" type="button" id="dlg-dl">Download file</button>
+    <button class="btn primary" type="button" id="dlg-close">Close</button>
+  </div>
+  <p class="small" style="margin:8px 0 0">Downloads work when the page is opened from a file or a normal website. Some embedded previews block them; use Copy there.</p>
+</dialog>
+<div class="toast" id="toast" hidden></div>
+
+<!-- Built-in vocabulary. Line format: Text | key=value | ... ; "@ key=value | ..." sets defaults for the lines below. -->
+<script id="bank-mod" type="text/plain">
+@ r=adj | t=abstract | tone=bold
+Red | g=red
+Crimson | g=red | tone=bold,dark,elegant
+Scarlet | g=red
+Vermilion | g=red | tone=bold,elegant
+Rose | g=rose | tone=warm,elegant
+Coral | tone=warm,bright
+Ochre | tone=warm,quiet
+Saffron | tone=warm,bright | mean=a deep yellow-orange, named after the spice
+Golden | g=gold | tone=bright,warm
+Gilded | g=gold | tone=elegant
+Indigo | tone=quiet,elegant
+Cobalt | tone=bold,quiet
+Azure | tone=bright,elegant
+Cerulean | tone=bright,elegant | say=suh-ROO-lee-un
+Teal | tone=quiet
+Jade | tone=elegant,quiet
+Emerald | tone=elegant,bright
+Olive | tone=quiet,warm
+Verdant | t=nature | tone=bright,elegant | mean=green with growing plants
+Sage | tone=quiet
+Ivory | tone=elegant,quiet
+Pearl | tone=elegant,quiet
+Silver | g=silver | tone=elegant,quiet
+Ashen | g=ash | tone=dark,quiet
+Slate | tone=quiet,dark
+Charcoal | tone=dark,quiet
+Black | tone=dark,bold
+White | tone=quiet,elegant
+Blue | tone=quiet
+Green | tone=bright
+Violet | tone=elegant,strange
+Lavender | tone=quiet,warm
+Lilac | tone=quiet,playful
+Magenta | tone=bold,playful
+Umber | tone=warm,dark | mean=an earthy brown pigment
+Sepia | tone=quiet,warm
+Russet | tone=warm | mean=reddish brown
+Tawny | tone=warm | mean=orange-brown
+Pale | tone=quiet,elegant
+Blush | tone=warm,playful
+Mint | tone=bright,playful
+Inky | g=ink | tone=dark,strange
+Dusky | g=dusk | tone=dark,quiet
+@ r=noun | t=built | tone=bold
+Iron | g=iron
+Copper | tone=warm,bold
+Brass | tone=warm,bold
+Bronze | tone=warm,bold
+Steel | g=iron
+Tin | tone=playful,quiet
+Glass | tone=elegant,quiet
+Paper | g=paper | tone=quiet,playful
+Velvet | tone=elegant,dark
+Linen | tone=quiet,elegant
+Silk | tone=elegant
+Wool | tone=warm,quiet
+Marble | tone=elegant
+Granite | tone=bold
+Clay | tone=warm,quiet
+Stone | tone=bold,quiet
+Cedar | t=nature | tone=warm,quiet
+Oak | t=nature | tone=warm,bold
+Walnut | t=nature | tone=warm
+Bamboo | t=nature,malay | tone=quiet
+Rattan | t=malay,everyday | tone=warm,quiet | mean=a climbing palm cane used for furniture, common in Southeast Asia
+Porcelain | tone=elegant,quiet
+Chalk | tone=quiet,playful
+Salt | tone=quiet
+Sugar | t=playful | tone=playful,warm
+Honey | g=honey | t=playful | tone=warm
+Wax | tone=quiet,strange
+Amber | tone=warm,elegant
+Coal | tone=dark
+Concrete | tone=bold
+Neon | t=science | tone=bright,bold
+Chrome | tone=bold,bright
+Carbon | t=science | tone=bold
+Cardboard | t=everyday | tone=playful
+Canvas | tone=quiet
+Lace | tone=elegant
+Plaster | tone=quiet
+Brick | tone=bold,warm
+Ink | g=ink | tone=quiet,dark
+Tinfoil | tone=playful,strange | e
+Rust | g=rust | tone=dark,warm
+Felt | tone=warm,playful
+Origami | g=paper | tone=playful,elegant | mean=the Japanese art of paper folding
+Clockwork | g=clock | tone=strange,bold
+@ r=adj | t=nature | tone=quiet
+Quiet
+Still
+Silent
+Hollow | tone=dark,quiet
+Distant
+Northern | g=north
+Southern | g=south
+Eastern
+Western
+Wild | tone=bold
+Gentle | tone=warm,quiet
+Restless | tone=bold,strange
+Wandering | tone=quiet,strange
+Drifting
+Sleeping
+Waking | tone=bright
+Burning | g=fire | tone=bold
+Falling | tone=dark
+Rising | tone=bright,bold
+Frozen | g=frost
+Frosted | g=frost
+Misty | g=fog
+Foggy | g=fog | tone=dark,quiet
+Rainy | g=rain
+Stormy | g=storm | tone=dark,bold
+Sunlit | g=sun | tone=bright,warm
+Moonlit | g=moon | tone=quiet,elegant
+Starlit | g=star | tone=elegant,quiet
+Twilit | g=dusk | tone=quiet,elegant
+Overcast | tone=quiet,dark
+Tropic | t=landscape,malay | tone=warm,bright
+Monsoon | r=noun | g=rain | t=malay | tone=bold
+Autumn | r=noun | tone=warm,quiet
+Winter | r=noun | g=frost | tone=quiet,dark
+Summer | r=noun | tone=bright,warm
+Midnight | r=noun | g=night | tone=dark,elegant
+Morning | r=noun | g=dawn | tone=bright,quiet
+Evening | r=noun | g=dusk | tone=quiet,elegant
+Dawn | r=noun | g=dawn | tone=bright
+Dusk | r=noun | g=dusk | tone=quiet,dark
+Late
+Early | tone=bright
+Lunar | g=moon | t=science | tone=elegant
+Solar | g=sun | t=science | tone=bright
+Stellar | g=star | t=science | tone=bright
+Polar | g=ice | t=landscape
+Coastal | g=coast | t=landscape
+Alpine | g=mountain | t=landscape
+Highland | r=noun | g=mountain | t=landscape
+Island | r=noun | g=island | t=landscape
+Desert | r=noun | g=desert | t=landscape | tone=warm
+Arctic | g=ice | t=landscape
+Tidal | g=tide | t=landscape
+Mossy | g=moss
+Feral | tone=bold,dark
+Blooming | g=bloom | tone=bright,warm
+Deep | tone=dark,quiet
+High | tone=bold
+Far
+Open | tone=bright
+Endless | tone=elegant
+Lost | tone=dark,quiet
+Hidden | tone=strange,quiet
+Secret | tone=strange
+Forgotten | tone=dark,quiet
+Ancient | t=myth | tone=bold,dark
+Old | tone=warm,quiet
+New | tone=bright
+Young | tone=bright
+@ r=adj | t=abstract | tone=playful
+Little | tone=warm,playful
+Tiny
+Tall | tone=bold
+Great | tone=bold
+Grand | tone=elegant,bold
+Small | tone=quiet
+Lone | tone=quiet,dark
+Twin | r=noun | tone=strange
+Half | tone=strange
+Broken | tone=dark
+Crooked | tone=strange,playful
+Folded | g=paper | tone=quiet,elegant
+Woven | tone=warm,elegant
+Painted | tone=bright
+Carved | tone=bold
+Stitched | tone=warm,strange
+Polished | tone=elegant
+Rusted | g=rust | tone=dark
+Weathered | tone=quiet
+Faded | tone=quiet
+Electric | t=science | tone=bright,bold
+Atomic | t=science | tone=bold
+Magnetic | t=science | tone=bold
+Analog | t=science | tone=warm,quiet
+Mechanical | t=built | tone=bold
+Radiant | tone=bright,elegant
+Lucid | tone=elegant,quiet
+Vivid | tone=bright
+Brave | tone=bold,warm
+Clever
+Curious | tone=playful,strange
+Odd | tone=strange,playful
+Strange | tone=strange
+Peculiar | tone=strange,playful
+Merry | tone=playful,warm
+Jolly | tone=playful,warm
+Lucky | tone=playful,bright
+Happy | tone=playful,bright
+Sleepy | tone=playful,quiet
+Hungry
+Sly | tone=playful,strange
+Honest | tone=warm,quiet
+Humble | tone=warm,quiet
+Noble | tone=elegant,bold
+Royal | tone=elegant,bold
+Kind | tone=warm
+Wicked | tone=dark,strange
+Cursed | tone=dark
+Haunted | tone=dark
+Grim | tone=dark
+Bleak | tone=dark
+Somber | tone=dark,quiet
+Ghostly | g=ghost | tone=dark,strange
+Phantom | r=noun | g=ghost | tone=dark,strange
+Spectral | g=ghost | tone=dark,strange
+Sunken | tone=dark
+Drowned | tone=dark
+Fallen | tone=dark
+Sacred | tone=elegant
+Mythic | t=myth | tone=bold
+Fabled | t=myth | tone=elegant
+Storied | t=myth | tone=elegant
+Nomad | r=noun | tone=quiet
+Pilgrim | r=noun | tone=quiet
+Vagabond | r=noun | tone=playful,strange
+Orbital | t=science | tone=bold
+Quantum | t=science | tone=bold
+Prime | tone=bold
+Infinite | tone=elegant
+Zero | r=noun | tone=bold
+Null | tone=strange,dark
+Parallel | tone=strange
+Spiral | tone=strange
+Round
+Soft | tone=quiet,warm
+Loud | tone=bold,playful
+Slow | tone=quiet
+Swift | tone=bold
+Heavy | tone=bold,dark
+Warm | tone=warm
+Cold | tone=dark,quiet
+Bright | tone=bright
+Dim | tone=dark,quiet
+Hazy | g=fog | tone=quiet,strange
+Cozy | tone=warm,playful
+Snug | tone=warm,playful
+Plucky | tone=playful,bold
+Fizzy
+Wobbly | tone=playful,strange | e
+Toasty | tone=playful,warm
+Pocket | r=noun
+Rubber | r=noun | t=everyday
+Jelly | r=noun | t=playful
+Bubble | r=noun
+Barefoot | tone=playful,warm
+@ r=ord | t=abstract | tone=bold
+First
+Second
+Third
+Seventh | tone=strange
+Ninth | tone=strange
+Last | tone=dark,quiet
+Final | tone=dark,bold
+@ r=num | t=abstract | tone=bold
+Two
+Three
+Five
+Seven
+Nine
+Twelve
+Forty
+Hundred
+Thousand
+</script>
+<script id="bank-core" type="text/plain">
+@ t=nature | tone=quiet
+Rain | n=m | g=rain
+Snow | n=m | g=snow
+Frost | n=m | g=frost
+Fog | n=m | g=fog
+Mist | n=m | g=fog
+Storm | g=storm | tone=bold,dark
+Thunder | n=m | g=storm | tone=bold
+Lightning | n=m | g=storm | tone=bold,bright
+Wind | g=wind
+Gale | g=wind | tone=bold
+Breeze | g=wind | tone=warm,quiet
+Cloud | g=cloud
+Dew | n=m | tone=quiet,elegant
+Hail | n=m | tone=bold
+Monsoon | g=rain | t=malay | tone=bold
+Tempest | g=storm | tone=dark,bold
+Squall | g=storm | tone=bold
+Rainbow | g=rain | tone=bright,playful
+Aurora | tone=elegant,bright
+Eclipse | g=sun | t=science | tone=dark,elegant
+Sunrise | g=dawn | tone=bright
+Sunset | g=dusk | tone=warm
+Twilight | n=m | g=dusk | tone=elegant,quiet
+Noon | tone=bright
+Midnight | g=night | tone=dark,elegant
+Ember | g=fire | tone=warm,dark
+Flame | g=fire | tone=bold
+Ash | n=m | g=ash | tone=dark
+Smoke | n=m | tone=dark
+Spark | g=fire | tone=bright
+Cinder | g=fire | tone=dark
+Blaze | g=fire | tone=bold
+Wildfire | g=fire | tone=bold,dark
+Tide | g=tide | t=landscape
+Wave | g=tide | t=landscape
+Current | t=landscape
+Ripple | tone=quiet,elegant
+Thaw | tone=quiet,bright
+Haze | n=m | g=fog | tone=quiet,strange
+Drizzle | n=m | g=rain | tone=quiet,playful
+@ t=landscape | tone=quiet
+River
+Brook
+Stream
+Lake
+Pond
+Lagoon | tone=bright
+Reef
+Shoal
+Delta
+Estuary | tone=elegant
+Marsh | tone=dark
+Fen | tone=dark
+Moor | tone=dark
+Heath
+Meadow | tone=bright,warm
+Prairie | tone=warm
+Steppe
+Tundra | g=ice | tone=dark
+Glacier | g=ice
+Fjord | say=fee-ORD
+Canyon | tone=bold
+Gorge | tone=bold
+Ravine | tone=dark
+Valley
+Cliff | tone=bold
+Ridge
+Summit | g=mountain | tone=bold
+Mountain | g=mountain | tone=bold
+Hill
+Dune | g=desert | tone=warm
+Oasis | g=desert | pl=Oases | tone=warm
+Mesa | g=desert
+Plateau | pl=Plateaus
+Island | g=island
+Isle | g=island | tone=elegant
+Atoll | g=island
+Cape
+Coast | g=coast
+Shore | g=coast
+Harbor | tone=warm,quiet
+Bay
+Cove
+Inlet
+Strait
+Ocean | g=sea
+Abyss | g=sea | tone=dark
+Trench | tone=dark
+Cavern | g=cave | tone=dark
+Grotto | g=cave | pl=Grottoes | tone=strange
+Forest | g=forest
+Grove | g=forest | tone=elegant
+Orchard | tone=warm
+Thicket | g=forest | tone=strange
+Jungle | g=forest | t=malay | tone=bold
+Mangrove | g=forest | t=malay | tone=strange
+Garden | tone=warm
+Field
+Pasture | tone=warm
+Vineyard | tone=elegant
+Paddy | t=malay | tone=warm | mean=a flooded field for growing rice
+Volcano | pl=Volcanoes | tone=bold,dark
+Crater | tone=strange
+Geyser | tone=bold
+Hollow | tone=dark
+Horizon | tone=bright
+@ t=nature | tone=quiet
+Fern
+Moss | n=m | g=moss
+Lichen | n=m | tone=strange | say=LY-ken
+Ivy | n=m
+Willow | tone=elegant
+Birch
+Pine
+Cypress | tone=dark,elegant
+Juniper | tone=elegant
+Banyan | t=malay | tone=strange | mean=a fig tree with aerial roots, common across South and Southeast Asia
+Lotus | tone=elegant
+Orchid | t=malay | tone=elegant
+Hibiscus | t=malay | tone=bright,warm | mean=bunga raya, Malaysia's national flower
+Jasmine | tone=elegant,warm
+Magnolia | tone=elegant
+Peony | tone=elegant
+Thistle | tone=bold
+Clover | tone=playful,bright
+Poppy | tone=bright
+Daisy | tone=playful,bright
+Marigold | tone=warm,bright
+Bramble | tone=dark,strange
+Thorn | tone=dark
+Root
+Seed
+Acorn | tone=playful,warm
+Pinecone | tone=playful
+Petal | tone=elegant
+Blossom | g=bloom | tone=bright,elegant
+Bloom | g=bloom | tone=bright
+Vine
+Reed
+Lily | tone=elegant
+Sunflower | g=sun | tone=bright,playful
+Dandelion | tone=playful
+Mushroom | tone=playful,strange
+Nettle | tone=bold
+Foxglove | tone=dark,elegant
+Bluebell | tone=quiet,elegant
+@ t=nature | tone=bold
+Wolf | pl=Wolves | tone=bold,dark
+Fox | tone=playful,bold
+Hare | tone=quiet
+Crow | tone=dark
+Magpie | tone=playful,strange
+Heron | tone=elegant,quiet
+Crane | tone=elegant
+Owl | tone=quiet,elegant
+Moth | tone=quiet,strange
+Firefly | tone=bright,playful
+Beetle | tone=strange
+Bee | tone=playful,warm
+Hornet
+Sparrow | tone=quiet,playful
+Finch | tone=playful
+Wren | tone=quiet
+Robin | tone=warm
+Swallow | tone=elegant
+Starling | g=star | tone=quiet
+Kestrel
+Falcon
+Hawk
+Eagle
+Albatross | tone=elegant,strange
+Pelican | tone=playful
+Whale | tone=quiet,bold
+Orca
+Octopus | pl=Octopuses | tone=strange
+Squid | tone=strange,playful
+Jellyfish | pl=Jellyfish | tone=strange
+Seahorse | tone=playful,elegant
+Turtle | tone=quiet
+Tortoise | tone=quiet,playful
+Gecko | pl=Geckos | t=malay | tone=playful
+Serpent | tone=dark
+Viper | tone=dark,bold
+Toad | tone=playful,strange
+Newt | tone=playful
+Salamander | tone=strange
+Otter | tone=playful,warm
+Badger | tone=bold,playful
+Bear | tone=bold,warm
+Lynx | tone=elegant,bold
+Tiger | t=malay | mean=the Malayan tiger is Malaysia's national animal
+Panther | tone=dark,bold
+Leopard
+Elephant | tone=warm,bold
+Tapir | t=malay | tone=strange,playful | mean=the Malayan tapir is native to Peninsular Malaysia
+Pangolin | t=malay | tone=strange
+Hornbill | t=malay | tone=bold,strange
+Gibbon | t=malay | tone=playful
+Orangutan | t=malay | tone=warm | mean=great ape of Borneo and Sumatra; from Malay 'orang hutan', person of the forest
+Lemur | tone=strange,playful
+Koi | pl=Koi | tone=elegant
+Stag
+Elk | pl=Elk
+Bison | pl=Bison
+Buffalo | pl=Buffaloes | tone=bold,warm
+Ox | pl=Oxen
+Horse
+Pony | tone=playful
+Goat | tone=playful
+Ram
+Lamb | tone=warm,quiet
+Hound | tone=bold,dark
+Mouse | pl=Mice | tone=playful,quiet
+Ferret | tone=playful
+Weasel | tone=playful,strange
+Mole | tone=playful,quiet
+Hedgehog | tone=playful
+Bat | tone=dark
+Coyote | tone=bold,playful
+Jackal | tone=dark
+Camel | tone=warm
+Llama | tone=playful
+Yak | tone=playful
+Dragonfly | tone=elegant
+Mantis | pl=Mantises | tone=strange
+Cricket | tone=playful
+Cicada | tone=strange
+Snail | tone=quiet,playful
+Spider | tone=dark
+Scorpion | tone=dark,bold
+Crab | tone=playful
+Puffin | tone=playful
+Flamingo | pl=Flamingos | tone=playful,bright
+Toucan | tone=playful,bright
+Peacock | tone=elegant,bold
+Pigeon | tone=playful
+Gull | tone=quiet
+Walrus | pl=Walruses | tone=playful
+Narwhal | tone=strange,playful
+Platypus | pl=Platypuses | tone=strange,playful
+Axolotl | tone=strange,playful | say=AK-suh-lot-ul
+Capybara | tone=playful,warm
+Wombat | tone=playful
+Goldfish | pl=Goldfish | tone=playful
+@ t=built | tone=bold
+Tower
+Spire | tone=elegant
+Bell | tone=quiet
+Belfry | tone=elegant,strange
+Lighthouse | tone=quiet
+Pier
+Jetty
+Wharf | pl=Wharves
+Dock
+Bridge
+Arch | tone=elegant
+Gate
+Door | tone=quiet
+Window | tone=quiet
+Stair | tone=quiet
+Ladder | tone=playful
+Attic | tone=quiet,strange
+Cellar | tone=dark
+Vault | tone=dark
+Hall | tone=elegant
+Gallery | tone=elegant
+Library | tone=quiet,elegant
+Archive | tone=quiet
+Museum | tone=elegant
+Observatory | t=science | tone=elegant
+Foundry
+Mill
+Forge
+Kiln | tone=warm
+Furnace | tone=bold,dark
+Engine | t=science
+Factory
+Quarry
+Mine | tone=dark
+Depot
+Station
+Terminal
+Platform
+Railway
+Tram | tone=quiet,playful
+Signal | t=science
+Junction
+Crossing
+Avenue | tone=elegant
+Alley | tone=dark
+Lane | tone=quiet
+Boulevard | tone=elegant
+Plaza
+Square
+Courtyard | tone=quiet,elegant
+Greenhouse | tone=warm
+Pavilion | tone=elegant
+Arcade | tone=playful
+Theater | tone=elegant
+Carousel | tone=playful
+Circus | tone=playful
+Market | tone=warm
+Bazaar | tone=warm
+Shophouse | t=malay | tone=warm | mean=a narrow terraced building with a shop below and a home above, common in Malaysian old towns
+Longhouse | t=malay | tone=warm | mean=a communal dwelling of several Bornean communities
+Castle
+Fortress | tone=bold,dark
+Citadel
+Bastion
+Rampart
+Keep
+Manor | tone=elegant,dark
+Villa | tone=elegant
+Cottage | tone=warm
+Cabin | tone=warm
+Bungalow | tone=warm
+Inn | tone=warm
+Tavern | tone=warm
+Diner | tone=playful,warm
+Bakery | tone=warm
+Boathouse | tone=quiet
+Windmill | tone=quiet
+Aqueduct | tone=elegant
+Canal
+Dam
+Reservoir
+Silo | pl=Silos | tone=quiet
+Barn | tone=warm
+Chimney | tone=warm
+Rooftop | tone=bright
+Balcony | tone=elegant
+Veranda | tone=warm
+Corridor | tone=strange
+Labyrinth | tone=strange,dark
+Maze | tone=strange
+Dome | tone=elegant
+Pillar
+Obelisk | tone=strange
+Monument
+Statue
+Fountain | tone=elegant
+Well | tone=quiet
+Bathhouse | tone=warm
+Garage | tone=playful
+Warehouse
+Workshop | g=studio | tone=warm
+Cog
+Piston
+Lever
+Anvil
+Hammer
+Rivet
+Bolt
+Wire
+Cable
+Antenna | pl=Antennas | t=science
+Turbine | t=science
+Dynamo | pl=Dynamos | t=science | tone=bright
+Boiler
+Reactor | t=science
+Circuit | t=science
+@ t=science | tone=elegant
+Star | g=star | tone=bright
+Comet | tone=bright
+Meteor | tone=bold
+Nebula | pl=Nebulae | tone=elegant,strange
+Galaxy
+Quasar
+Pulsar
+Orbit
+Moon | g=moon
+Sun | g=sun | tone=bright
+Planet
+Asteroid
+Cosmos | n=m
+Void | tone=dark
+Zenith | tone=bright
+Equinox
+Solstice
+Satellite
+Telescope
+Prism | tone=bright
+Lens
+Mirror
+Atom
+Photon | tone=bright
+Particle
+Magnet
+Compass
+Sextant
+Astrolabe
+Pendulum
+Gyroscope
+Frequency
+Spectrum | pl=Spectra
+Element
+Isotope
+Crystal
+Quartz | n=m
+Helium | n=m | tone=playful
+Fossil
+Geode | tone=strange
+Mineral
+Vector
+Axis | pl=Axes
+Radius | pl=Radii
+Theorem
+Formula
+Cipher | tone=strange
+Equation
+Fractal | tone=strange
+Helix | pl=Helixes
+Spiral
+Algorithm
+Machine | tone=bold
+Robot | tone=playful
+Automaton | pl=Automata | tone=strange
+Drone
+Beacon | tone=bright
+Pulse
+Echo | pl=Echoes | tone=quiet,strange
+Rocket | tone=bold,bright
+@ t=myth | tone=elegant
+Saga
+Fable
+Myth
+Legend
+Ballad | tone=warm
+Sonnet
+Verse
+Chapter
+Prologue
+Epilogue
+Chronicle
+Almanac
+Atlas
+Codex | pl=Codices
+Folio | pl=Folios
+Manuscript
+Scroll
+Riddle | tone=strange
+Rhyme | tone=playful
+Lullaby | tone=quiet,warm
+Elegy | tone=dark
+Ode
+Oracle | tone=strange
+Sphinx | tone=strange
+Griffin | tone=bold
+Phoenix | tone=bold,bright
+Dragon | tone=bold
+Kraken | tone=dark,bold
+Leviathan | tone=dark,bold
+Hydra | tone=dark
+Chimera | tone=strange | say=ky-MEER-uh
+Golem | tone=strange
+Titan | tone=bold
+Giant | tone=bold
+Siren | tone=dark,elegant
+Dryad
+Sprite | tone=playful
+Pixie | tone=playful
+Goblin | tone=playful,strange
+Troll | tone=playful
+Ogre | tone=playful,strange
+Wyvern | tone=bold
+Basilisk | tone=dark
+Unicorn | tone=playful,bright
+Minotaur | tone=bold,dark
+Centaur | tone=bold
+Cyclops | pl=Cyclopes | tone=strange
+Banshee | tone=dark
+Wraith | tone=dark
+Specter | g=ghost | tone=dark
+Ghost | g=ghost | tone=dark
+Witch | tone=dark,strange
+Wizard | tone=playful
+Alchemist | tone=strange
+Knight | tone=bold
+Jester | tone=playful
+Bard | tone=warm
+Herald | tone=bold
+Wanderer | tone=quiet
+Hermit | tone=quiet,strange
+Scribe | tone=quiet
+Cartographer | tone=quiet
+Navigator | tone=bold
+Mariner | tone=quiet
+Captain | tone=bold
+Corsair | tone=bold,dark
+Ranger | tone=bold
+Archer | tone=bold
+Shepherd | tone=warm
+Keeper | tone=quiet
+Lamplighter | tone=warm
+Clockmaker | g=clock | tone=quiet
+Tinker | tone=playful
+Tailor | tone=quiet
+Weaver | tone=warm
+Potter | tone=warm
+Poet
+Dancer
+Drummer | tone=bold
+Fiddler | tone=playful
+Piper | tone=playful
+Magician | tone=playful,strange
+Acrobat | tone=playful
+Juggler | tone=playful
+Puppeteer | tone=strange
+Ringmaster | tone=playful
+@ t=abstract | tone=quiet
+Reverie | tone=elegant
+Dream
+Memory
+Promise
+Wonder
+Gambit | tone=bold
+Fortune | tone=bright
+Omen | tone=dark
+Rumor
+Whisper
+Secret | tone=strange
+Theory
+Notion
+Hunch | tone=playful
+Whim | tone=playful
+Folly | tone=playful,strange
+Mercy | n=m
+Grace | n=m | tone=elegant
+Vow
+Oath | tone=bold
+Pact | tone=bold
+Accord
+Harmony | n=m | tone=elegant
+Rhythm
+Tempo | pl=Tempos
+Cadence | tone=elegant
+Chord
+Melody
+Refrain
+Overture | tone=elegant
+Encore | tone=bright
+Interlude
+Silence | n=m
+Motion
+Momentum | n=m | tone=bold
+Gravity | n=m | tone=bold
+Balance | n=m
+Instinct | tone=bold
+Impulse | tone=bold
+Vision
+Mirage | tone=strange
+Illusion | tone=strange
+Enigma | tone=strange
+Mystery | tone=strange
+Puzzle | tone=playful
+Parable
+Errand | tone=playful
+Venture | tone=bold
+Voyage
+Odyssey | tone=bold
+Quest | tone=bold
+Expedition | tone=bold
+Escape | tone=bold
+Return
+Arrival
+Departure
+Threshold
+Margin
+Edge | tone=bold
+Distance
+Interval
+Era
+Epoch
+Century
+Season
+Hour
+Moment
+Heartbeat | tone=warm
+Breath
+Laughter | n=m | tone=warm,playful
+Delight | tone=bright
+Bliss | n=m | tone=bright
+Solace | n=m | tone=elegant
+Comfort | n=m | tone=warm
+Hope | n=m | tone=bright
+Courage | n=m | tone=bold
+Valor | n=m | tone=bold
+Glory | n=m | tone=bold
+Longing | tone=elegant
+Nostalgia | n=m | tone=warm
+@ t=everyday | tone=warm
+Lantern
+Lamp
+Candle
+Matchbox | tone=playful
+Teacup | tone=playful
+Teapot | tone=playful
+Kettle
+Spoon | tone=playful
+Ladle | tone=playful
+Jar
+Bottle
+Vase | tone=elegant
+Bowl
+Basket
+Suitcase | tone=quiet
+Umbrella | tone=quiet
+Raincoat | g=rain | tone=playful
+Boot
+Button | tone=playful
+Thimble | tone=playful
+Needle | tone=quiet
+Ribbon | tone=elegant
+Kite | tone=playful,bright
+Balloon | tone=playful,bright
+Domino | pl=Dominoes | tone=playful
+Rook | tone=bold
+Pawn | tone=quiet
+Card
+Token
+Coin
+Key
+Clock | g=clock
+Hourglass | tone=elegant
+Map
+Globe
+Postcard
+Envelope
+Stamp
+Letter
+Typewriter | tone=quiet
+Pencil | tone=playful
+Crayon | tone=playful
+Notebook
+Bookmark
+Bicycle | tone=playful
+Ferry
+Canoe
+Rowboat
+Sailboat
+Raft
+Submarine | tone=strange
+Zeppelin | tone=strange,bold
+Biplane | tone=playful
+Jukebox | tone=playful
+Radio | pl=Radios
+Gramophone | tone=elegant
+Cassette | tone=playful
+Piano | pl=Pianos | tone=elegant
+Violin | tone=elegant
+Cello | pl=Cellos | tone=elegant | say=CHEL-oh
+Trumpet | tone=bold
+Tuba | tone=playful
+Banjo | pl=Banjos | tone=playful
+Ukulele | tone=playful
+Harmonica | tone=playful
+Accordion | tone=playful
+Drum | tone=bold
+Whistle | tone=playful
+Mitten | tone=playful
+Scarf | pl=Scarves
+Crown | tone=bold
+Mask | tone=strange
+Puppet | tone=playful,strange
+Marionette | tone=strange
+Pinwheel | tone=playful
+Snowglobe | g=snow | tone=playful
+Kaleidoscope | tone=bright,strange
+Spyglass
+Abacus | pl=Abacuses
+Ledger
+Inkwell | g=ink
+Quill
+Candlestick
+Chandelier | tone=elegant
+Pillow | tone=playful
+Quilt
+Blanket
+Hammock | tone=playful
+Teaspoon | tone=playful
+Toaster | tone=playful | e
+Paperweight | g=paper | tone=quiet
+@ t=playful | tone=playful
+Pickle | e
+Biscuit
+Muffin
+Pancake
+Waffle
+Dumpling
+Noodle
+Pretzel
+Toffee | n=m
+Caramel | n=m
+Marmalade | n=m
+Lemon
+Lime
+Peach
+Plum
+Cherry
+Apricot
+Fig
+Quince
+Mango | pl=Mangoes | t=malay
+Papaya | t=malay
+Coconut | t=malay
+Pineapple
+Durian | t=malay | mean=a spiky Southeast Asian fruit famous for its strong smell
+Rambutan | t=malay | mean=a hairy red tropical fruit; from Malay 'rambut', hair
+Mangosteen | t=malay
+Pomelo | pl=Pomelos | t=malay
+Kumquat
+Ginger | n=m
+Pepper
+Cinnamon | n=m
+Clove
+Nutmeg
+Tea | n=m
+Cocoa | n=m
+Espresso | n=m
+Soda | n=m
+Lollipop
+Gumdrop
+Jellybean
+Marshmallow
+Popcorn | n=m
+Confetti | n=m
+Firecracker
+Sparkler
+Kazoo | pl=Kazoos
+Trampoline
+Doodle
+Scribble
+Hiccup | e
+Giggle
+Mischief | n=m
+Ruckus
+Hullabaloo | pl=Hullabaloos | e
+Jamboree
+Carnival
+Parade
+Picnic
+Sock
+</script>
+<script id="bank-single" type="text/plain">
+@ k=word | t=nature | tone=quiet
+Afterlight | tone=elegant,quiet | mean=the light that lingers after sunset
+Halcyon | tone=elegant,bright | mean=calm and idyllic; also a mythical bird said to calm the sea | say=HAL-see-un
+Meridian | tone=elegant | mean=a line of longitude; also a peak or high point
+Undertow | tone=dark | mean=a current beneath the surface flowing away from shore
+Overcast | tone=quiet,dark
+Nightjar | tone=quiet,strange | mean=a nocturnal bird with a churring call
+Kingfisher | tone=bright | mean=a bright river bird (also the name of a UK retail group)
+Lamplight | tone=warm
+Wayfarer | mean=a traveler on foot
+Driftwood
+Bellwether | tone=bold | mean=a sign of what is coming; originally the lead sheep wearing a bell
+Windward | tone=bold | mean=facing the wind
+Leeward | mean=sheltered from the wind | say=LOO-erd (sailing) or LEE-werd
+Larkspur | tone=elegant | mean=a tall flowering plant
+Thistledown | tone=quiet,elegant
+Gossamer | tone=elegant | mean=a fine, filmy cobweb; anything delicate
+Quicksilver | tone=bright,bold | mean=an old name for mercury; quick and changeable
+Lodestar | tone=elegant | mean=a star used to steer by; a guiding principle
+Lodestone | tone=bold | mean=naturally magnetic rock
+Keystone | tone=bold | mean=the central stone that locks an arch (also used by several companies)
+Wellspring | tone=elegant | mean=a plentiful source
+Fairweather | tone=bright
+Tumbleweed | tone=playful
+Saltmarsh
+Sandpiper | tone=playful
+Cloudberry | tone=playful
+Elderflower | tone=elegant
+Ironwood | tone=bold
+Whitecap | tone=bold | mean=a wave with a white foamy crest
+Riptide | tone=bold,dark
+Crosswind | tone=bold
+Tailwind | tone=bright
+Updraft | tone=bright
+Downpour | tone=bold
+Snowfall
+Nightfall | tone=dark
+Daybreak | tone=bright
+Sunbeam | tone=bright,playful
+Moonbeam | tone=quiet,playful
+Afterglow | tone=warm,elegant
+Aftershock | tone=dark,bold
+Undercurrent | tone=dark
+Overgrowth | tone=strange
+Outpost | tone=bold
+Longboat | tone=bold
+Farthing | tone=quiet,playful | mean=an old British coin worth a quarter of a penny
+Tinderbox | tone=bold | mean=a box of fire-starting kit; a situation ready to flare up
+Weathervane
+Coyote | tone=bold,playful
+Foxfire | tone=strange | mean=the faint glow of certain fungi on rotting wood
+Starfall | tone=bright
+Hearthlight | k=invented | tone=warm | mean=coined compound: hearth + light
+Moonrise | tone=elegant
+@ k=word | t=nature | tone=bold
+Ibis | tone=elegant
+Egret | tone=elegant
+Plover | tone=quiet
+Curlew | tone=quiet
+Lapwing | tone=quiet
+Bittern | tone=quiet,strange
+Shrike
+Osprey
+Ocelot
+Marten
+Sable | tone=elegant,dark | mean=a dark-furred marten; also black in heraldry (and the title of a 2021 indie game)
+Stoat | tone=playful
+Ermine | tone=elegant
+Civet | tone=strange
+Binturong | t=nature,malay | tone=strange,playful | mean=the bearcat, a tree-dwelling mammal of Southeast Asia | say=bin-TOO-rong
+Tarsier | t=nature,malay | tone=strange | mean=a tiny big-eyed primate of Borneo and the Philippines
+Loris | tone=quiet
+Siamang | t=nature,malay | tone=playful | mean=a large black gibbon of Malaysia and Sumatra | say=SEE-uh-mang
+Okapi | tone=strange
+Quokka | tone=playful
+Armadillo | tone=playful
+Chameleon | tone=strange
+Mongoose
+Meerkat | tone=playful
+Cormorant | tone=dark
+Petrel | tone=quiet
+Hummingbird | tone=bright
+Bowerbird | tone=strange | mean=a bird that decorates elaborate courtship nests
+Nautilus | tone=elegant,strange
+Mudskipper | t=nature,malay | tone=playful | mean=an amphibious fish of Malaysian mangroves
+@ k=name | t=myth | tone=elegant | mean=a given name
+Victoria | mean=a given name; Latin for victory
+Juliet
+Ophelia | tone=dark,elegant
+Clementine | tone=warm,playful
+Matilda | tone=warm
+Beatrix
+Rosalind
+Isadora
+Octavia
+Cordelia
+Imogen
+Genevieve
+Josephine
+Evangeline
+Marguerite
+Henrietta | tone=warm
+Winifred | tone=warm,playful
+Penelope
+Cassandra | tone=dark | mean=a given name; in Greek myth, a prophet nobody believed
+Delphine
+Celeste | tone=bright | mean=a given name meaning heavenly
+Margot
+Agatha
+Theodora
+Lucinda
+Annabel
+Eloise
+Valentina
+Serafina
+Odette
+Rosamund
+Wilhelmina | tone=playful
+Augustine
+Lucian
+Cassius | tone=bold
+Ezra
+Atticus
+Jasper
+Felix | mean=a given name; Latin for lucky
+Silas
+Tobias
+Ambrose
+Barnaby | tone=playful
+Leopold
+Archibald | tone=playful
+Casimir
+Leander
+Percival
+Horatio
+Ignatius
+Thaddeus
+Cyrus
+Orson
+Otis | tone=warm
+Hugo
+Basil | mean=a given name; also the herb
+Edmund
+Ferdinand
+Gideon
+Lysander
+Sebastian
+Valentine
+Mortimer | tone=dark,playful
+Montgomery
+@ k=name | t=landscape | tone=elegant | mean=a real place name; places can carry brand or trademark associations
+Valencia
+Siena
+Verona
+Havana
+Marrakesh
+Zanzibar
+Samarkand
+Andalusia
+Tasmania
+Borneo | t=landscape,malay | mean=the island shared by Malaysia, Indonesia and Brunei
+Malacca | t=landscape,malay | mean=historic Malaysian port city, also spelled Melaka
+Penang | t=landscape,malay | mean=a Malaysian island state
+Langkawi | t=landscape,malay | mean=an island group off Kedah, Malaysia
+Kinabalu | t=landscape,malay | mean=Mount Kinabalu in Sabah, Malaysia's highest peak
+Mulu | t=landscape,malay | mean=Gunung Mulu National Park in Sarawak, known for its caves
+Tioman | t=landscape,malay | mean=an island off the east coast of Peninsular Malaysia
+Seville
+Santorini
+Capri
+Normandy
+Provence
+Tuscany
+Kashmir
+Sahara
+Gobi
+Mojave
+Atacama
+Kalahari
+Yukon
+Klondike
+Savannah
+Sonora
+Montana
+Dakota
+Petra
+Carthage
+Alexandria
+Byzantium
+@ k=name | t=myth | tone=elegant
+Avalon | mean=the island of Arthurian legend
+Arcadia | mean=an idealized pastoral paradise; also a region of Greece
+Lyonesse | mean=a lost land of Arthurian legend
+Xanadu | mean=Kublai Khan's summer capital; a byword for splendor
+Hyperborea | mean=a mythical land beyond the north wind
+Thule | mean=the far north in classical geography | say=THOO-lee
+Elysium | mean=paradise in Greek myth (also a 2013 film)
+Icarus | tone=bold | mean=flew too close to the sun in Greek myth
+Orpheus | mean=the legendary musician of Greek myth
+Persephone | mean=Greek goddess of spring and the underworld | say=per-SEF-uh-nee
+Janus | mean=two-faced Roman god of doorways and beginnings
+Selene | mean=Greek goddess of the moon
+Tethys | mean=a Titan goddess of the sea
+Nyx | tone=dark | mean=Greek goddess of night
+Eos | tone=bright | mean=Greek goddess of dawn
+Hyperion | mean=a Titan of light (also a Keats poem and a science-fiction novel)
+Calypso | mean=a sea nymph of the Odyssey; also a Caribbean music style
+Circe | mean=the enchantress of the Odyssey | say=SUR-see
+Ariadne | mean=gave Theseus the thread to escape the labyrinth
+Daedalus | mean=the master craftsman of Greek myth | say=DED-uh-lus
+Midgard | mean=the world of humans in Norse myth
+Bifrost | mean=the rainbow bridge of Norse myth
+Fenrir | tone=dark | mean=the giant wolf of Norse myth
+Freya | mean=Norse goddess of love and war
+Sleipnir | mean=Odin's eight-legged horse | say=SLAYP-neer
+Thoth | mean=Egyptian god of writing and wisdom
+Bastet | mean=Egyptian cat goddess
+Quetzal | mean=a brilliant green bird, sacred in Mesoamerican culture
+Kitsune | k=foreign | lang=Japanese | mean=fox; in folklore, a shapeshifting fox spirit | say=KIT-soo-neh
+Tengu | k=foreign | lang=Japanese | mean=a winged mountain spirit of folklore
+Tanuki | k=foreign | lang=Japanese | tone=playful | mean=raccoon dog; a mischievous shapeshifter in folklore
+Baku | k=foreign | lang=Japanese | tone=strange | mean=a folklore creature said to eat nightmares (Baku is also the capital of Azerbaijan)
+Garuda | t=myth,malay | mean=divine bird of Hindu and Buddhist myth; Indonesia's national emblem and airline name
+Naga | t=myth,malay | mean=a serpent deity of South and Southeast Asian myth
+Merlin | mean=the wizard of Arthurian legend; also a small falcon
+Morgana | mean=the enchantress of Arthurian legend
+Gawain | mean=a knight of the Round Table
+Camelot | mean=King Arthur's court
+Tristan
+Isolde
+Grendel | tone=dark | mean=the monster of Beowulf
+Puck | tone=playful | mean=the mischievous sprite in A Midsummer Night's Dream
+Titania | mean=the fairy queen in A Midsummer Night's Dream
+Oberon | mean=the fairy king in A Midsummer Night's Dream
+Prospero | mean=the magician of The Tempest
+Ariel | mean=a spirit in The Tempest (also a Disney character)
+Caliban | tone=dark | mean=a character in The Tempest
+Medusa | tone=dark
+Charon | tone=dark | mean=the ferryman of the dead in Greek myth | say=KAIR-on
+Lethe | tone=dark | mean=the river of forgetfulness in Greek myth | say=LEE-thee
+Styx | tone=dark | mean=a river of the underworld in Greek myth (also a rock band)
+Triton
+Proteus | mean=a shape-shifting sea god
+Gaia | mean=the Greek personification of the Earth
+Artemis | mean=Greek goddess of the hunt and the moon
+Hestia | mean=Greek goddess of the hearth
+Rhea | mean=Titan mother of the Olympian gods
+@ k=word | t=abstract | tone=elegant
+Candor
+Verve | tone=bright
+Nadir | tone=dark | mean=the lowest point
+Vesper | mean=evening; the evening star
+Lumen | mean=a unit of light; Latin for light
+Penumbra | tone=dark | mean=the partly shaded edge of a shadow
+Umbra | tone=dark | mean=the darkest part of a shadow
+Parallax | mean=the apparent shift of an object seen from two positions
+Lacuna | tone=strange | mean=a gap or missing part
+Ephemera | mean=things that last only briefly
+Elixir
+Talisman
+Amulet
+Totem
+Sigil | tone=strange | mean=a symbol believed to have magical power
+Glyph
+Emblem
+Pennant
+Kindling | tone=warm
+Lucent | mean=glowing, translucent
+Opal
+Onyx | tone=dark
+Garnet
+Topaz
+Beryl
+Carnelian | mean=a red-orange gemstone
+Malachite | mean=a banded green mineral
+Lapis | mean=short for lapis lazuli, a deep-blue stone
+Tourmaline
+Moonstone
+Sunstone
+Cinnabar | mean=a red mercury mineral once used as pigment
+Verdigris | mean=the green patina on old copper | say=VUR-dih-gree
+Vellum | mean=fine parchment
+Parchment
+Marginalia | mean=notes written in the margins of a book
+Colophon | mean=a printer's emblem or note at the end of a book
+Errata | tone=playful | mean=a list of corrections
+Ellipsis
+Ampersand | tone=playful | mean=the & symbol
+Asterisk | tone=playful
+Fermata | mean=a musical sign meaning hold the note
+Coda | mean=the closing passage of a piece of music
+Ostinato | mean=a musical phrase that repeats persistently
+Staccato | tone=bold
+Crescendo | tone=bold
+Nocturne | tone=dark | mean=a dreamy piece of music evoking night
+Etude | mean=a musical study piece | say=AY-tood
+Sonata
+Rondo
+Fugue | tone=strange
+Allegro | tone=bright | mean=musical direction: fast and lively
+@ k=word | t=playful | tone=playful
+Butterscotch
+Marzipan
+Gingersnap
+Snapdragon
+Kerfuffle | mean=a commotion or fuss
+Brouhaha
+Rigmarole
+Whirligig | mean=a spinning toy
+Bumblebee
+Hopscotch
+Peekaboo
+Tiddlywinks
+Bonfire | tone=warm
+Shindig
+Hoopla
+Calliope | mean=a steam organ; also the Greek muse of epic poetry | say=kuh-LY-uh-pee
+Dirigible | mean=an airship
+Gondola
+Sampan | t=playful,malay | mean=a flat-bottomed wooden boat common in Southeast Asia
+Trishaw | t=playful,malay | mean=a three-wheeled pedal taxi (beca in Malay)
+Zoetrope | mean=an early animation device of spinning slits | say=ZOH-ee-trope
+Phonograph
+Scarecrow | tone=strange
+Snowdrop | tone=quiet
+Gumball
+Pinball
+Rocketship
+Treehouse
+Sandcastle
+Cuckoo | tone=strange
+Woodpecker
+Ladybird
+Teacake
+Crumpet
+Pudding
+Sherbet
+Lemonade
+Kettledrum
+@ k=foreign | lang=Malay | t=malay | tone=elegant
+Senja | mean=dusk, twilight | say=SEN-jah
+Pelangi | tone=bright | mean=rainbow | say=peh-LAH-ngee
+Bayu | mean=breeze (literary) | say=BAH-yoo
+Embun | tone=quiet | mean=dew | say=EM-boon
+Hujan | mean=rain | say=HOO-jahn
+Rimba | tone=bold | mean=jungle, wilderness | say=RIM-bah
+Tanjung | mean=cape, headland | say=TAHN-joong
+Gelora | tone=bold | mean=surge, turbulence; also passion | say=geh-LOH-rah
+Delima | tone=warm | mean=pomegranate | say=deh-LEE-mah
+Merdu | mean=melodious, sweet-sounding | say=mer-DOO
+Lestari | mean=enduring, preserved | say=les-TAH-ree
+Cahaya | tone=bright | mean=light, radiance | say=chah-HAH-yah
+Purnama | mean=full moon | say=poor-NAH-mah
+Suria | tone=bright | mean=sun (literary) | say=SOO-ree-ah
+Mentari | tone=bright | mean=sun (poetic) | say=men-TAH-ree
+Angkasa | mean=sky, outer space | say=ahng-KAH-sah
+Samudera | tone=bold | mean=ocean | say=sah-moo-DEH-rah
+Kembara | mean=wanderer; to roam | say=kem-BAH-rah
+Halia | tone=warm | mean=ginger | say=HAH-lee-ah
+Selasih | mean=basil | say=seh-LAH-see
+Cempaka | mean=champak, a fragrant flowering tree | say=chem-PAH-kah
+Melur | mean=jasmine | say=meh-LOOR
+Teratai | mean=lotus, water lily | say=teh-RAH-tie
+Kasturi | mean=musk | say=kas-TOO-ree
+Mutiara | mean=pearl | say=moo-tee-AH-rah
+Permata | mean=gem, jewel | say=per-MAH-tah
+Wau | tone=playful | mean=a traditional Malay kite, especially from Kelantan and Terengganu | say=WOW
+Gasing | tone=playful | mean=a spinning top, a traditional game | say=GAH-sing
+Congkak | tone=playful | mean=a traditional Malay mancala board game | say=CHONG-kak
+Layang | mean=to glide or soar (as in layang-layang, kite) | say=LAH-yahng
+Kancil | tone=playful | mean=mouse-deer, the trickster hero of Malay folk tales (also a Perodua car model) | say=KAHN-chil
+Helang | tone=bold | mean=eagle | say=heh-LAHNG
+Kenyalang | tone=bold | mean=rhinoceros hornbill, a symbol of Sarawak | say=keh-NYAH-lahng
+Merak | mean=peacock | say=MEH-rak
+Pelita | tone=warm | mean=oil lamp | say=peh-LEE-tah
+Bintang | mean=star (also a beer brand in Indonesia) | say=BIN-tahng
+Awan | tone=quiet | mean=cloud | say=AH-wahn
+Ombak | mean=wave | say=OM-bak
+Langit | mean=sky | say=LAH-ngit
+Muara | mean=estuary, river mouth | say=moo-AH-rah
+Tasik | mean=lake | say=TAH-sik
+Kayangan | mean=the heavenly realm of Malay legend | say=kah-YAH-ngahn
+Bunian | tone=strange | mean=the hidden folk of Malay folklore | say=boo-NEE-ahn
+Hikayat | mean=a classical Malay prose narrative | say=hee-KAH-yaht
+Pantun | mean=a traditional Malay rhyming quatrain | say=PAHN-toon
+Syair | mean=a traditional Malay narrative poem | say=SHAH-eer
+Gurindam | mean=a Malay aphoristic verse form | say=goo-RIN-dahm
+Wayang | mean=shadow-puppet theater | say=WAH-yahng
+Silat | tone=bold | mean=a Malay martial art | say=SEE-laht
+Rebana | mean=a frame drum | say=reh-BAH-nah
+Kompang | mean=a hand drum played at Malay celebrations | say=KOM-pahng
+Songket | mean=hand-woven brocade with metallic thread | say=SONG-ket
+Cendana | mean=sandalwood | say=chen-DAH-nah
+Gaharu | mean=agarwood | say=gah-HAH-roo
+Seroja | mean=lotus (literary) | say=seh-ROH-jah
+Sinar | tone=bright | mean=ray, beam of light | say=SEE-nar
+Kilau | tone=bright | mean=gleam, sparkle | say=KEE-lau
+Bayang | tone=dark | mean=shadow, reflection | say=BAH-yahng
+Rindu | mean=longing, missing someone | say=RIN-doo
+Impian | mean=dream, aspiration | say=im-PEE-ahn
+Gemilang | tone=bold | mean=glorious, splendid | say=geh-MEE-lahng
+Nakhoda | tone=bold | mean=a ship's captain | say=nahk-HOH-dah
+Bahtera | mean=ark, great ship | say=bah-TEH-rah
+Kemudi | mean=rudder, helm | say=keh-MOO-dee
+Sauh | mean=anchor | say=SAH-ooh
+Jelajah | mean=to explore, roam | say=jeh-LAH-jah
+Teduh | tone=quiet | mean=shaded, calm | say=teh-DOOH
+Damai | tone=quiet | mean=peace | say=dah-MY
+Ceria | tone=playful | mean=cheerful | say=cheh-REE-ah
+Riang | tone=playful | mean=merry | say=REE-ahng
+Lincah | tone=playful | mean=nimble, agile | say=LIN-chah
+Kenari | tone=playful | mean=canary | say=keh-NAH-ree
+@ k=foreign | t=abstract | tone=elegant
+Nox | lang=Latin | tone=dark | mean=night
+Ignis | lang=Latin | tone=bold | mean=fire
+Caelum | lang=Latin | mean=sky, heaven; also a constellation | say=SEE-lum
+Silva | lang=Latin | t=abstract,nature | mean=forest
+Viator | lang=Latin | mean=traveler | say=vee-AH-tor
+Fortuna | lang=Latin | mean=fortune; the Roman goddess of luck
+Stella | lang=Latin | tone=bright | mean=star (also a beer brand)
+Komorebi | lang=Japanese | t=abstract,nature | mean=sunlight filtering through leaves | say=koh-moh-REH-bee
+Kintsugi | lang=Japanese | mean=repairing broken pottery with gold | say=kin-TSOO-gee
+Hanabi | lang=Japanese | tone=bright | mean=fireworks | say=hah-NAH-bee
+Yume | lang=Japanese | mean=dream | say=YOO-meh
+Hoshi | lang=Japanese | mean=star | say=HOH-shee
+Lucero | lang=Spanish | tone=bright | mean=a bright star; the morning star | say=loo-SEH-roh
+Cielo | lang=Spanish | mean=sky | say=SYEH-loh
+Marea | lang=Spanish | mean=tide | say=mah-REH-ah
+Brisa | lang=Spanish | mean=breeze | say=BREE-sah
+Alba | lang=Spanish | tone=bright | mean=dawn (also the Scottish Gaelic name for Scotland)
+Niebla | lang=Spanish | tone=dark | mean=fog | say=NYEH-blah
+Lontano | lang=Italian | mean=far away; in music, as if from a distance | say=lon-TAH-noh
+Saudade | lang=Portuguese | mean=a melancholy longing for something absent | say=sow-DAH-deh
+Hiraeth | lang=Welsh | mean=longing for a home you cannot return to | say=HEER-eyeth
+Sisu | lang=Finnish | tone=bold | mean=grit and perseverance | say=SEE-soo
+Kairos | lang=Greek | mean=the opportune moment | say=KYE-ros
+Nostos | lang=Greek | mean=homecoming
+Ataraxia | lang=Greek | tone=quiet | mean=calm; freedom from worry
+Qamar | lang=Arabic | mean=moon | say=KAH-mar
+Haar | lang=Scots | tone=dark | mean=a cold sea fog on the North Sea coasts of Scotland and England | say=HAR
+@ k=invented | t=abstract | tone=elegant | mean=invented for this tool; it may still match a name used elsewhere
+Aurevel | say=or-uh-VEL
+Corvane | say=kor-VAYN
+Ilvara | say=il-VAH-rah
+Kestramere | say=KES-truh-meer
+Lunaveil | say=LOO-nuh-vayl | mean=invented: luna (moon) + veil
+Nimbrel | say=NIM-brel
+Oriseth | say=OR-ih-seth
+Pellucine | say=PEL-oo-seen | mean=invented; echoes 'pellucid' (clear)
+Quillamere | say=KWIL-uh-meer
+Rovenna | say=roh-VEN-uh
+Tamberlyn | say=TAM-ber-lin | tone=warm
+Umbravel | say=UM-bruh-vel | tone=dark
+Velloran | say=VEL-or-an
+Yarrowen | say=YAIR-oh-en
+Zephyrel | say=ZEF-ih-rel | mean=invented; echoes 'zephyr' (a west wind)
+Calderine | say=KAL-der-een
+Merivane | say=MER-ih-vayn
+Solvane | say=SOL-vayn
+Tavirel | say=TAV-ih-rel
+Orlume | say=or-LOOM | mean=invented; echoes 'lumen' (light)
+Numira | say=noo-MEER-ah
+Ardentine | say=AR-den-tyne | tone=bold | mean=invented; echoes 'ardent'
+Lirabel | say=LEER-uh-bel
+Mirrowen | say=MIR-oh-en
+Vantrel | say=VAN-trel | tone=bold
+Quenlow | say=KWEN-loh | tone=quiet
+Hollowyn | say=HOL-oh-win | tone=dark
+Tessaline | say=TES-uh-leen
+Brask | say=BRASK | tone=bold
+Kivora | say=kih-VOR-ah | tone=bright
+Brindlewick | t=playful | tone=warm | mean=coined compound: brindle + wick
+Fenwhistle | t=playful | tone=playful | mean=coined compound: fen + whistle
+Glimmerholt | t=nature | mean=coined compound: glimmer + holt (a small wood)
+Copperwick | t=built | tone=warm | mean=coined compound: copper + wick
+Owlbright | t=nature | tone=quiet | mean=coined compound: owl + bright
+Tidelark | t=nature | tone=bright | mean=coined compound: tide + lark
+Thimblewick | t=playful | tone=playful | mean=coined compound: thimble + wick
+Wickerlight | t=everyday | tone=warm | mean=coined compound: wicker + light
+Lanternfall | t=everyday | tone=quiet | mean=coined compound: lantern + fall
+Kitewhistle | t=playful | tone=playful | mean=coined compound: kite + whistle
+Gildmere | t=landscape | mean=coined compound: gild + mere (a lake)
+Fernhallow | t=nature | tone=quiet | mean=coined compound: fern + hallow
+Embervale | t=nature | tone=warm | mean=coined compound: ember + vale
+Pocketmoor | t=playful | tone=playful | mean=coined compound: pocket + moor
+Mossgrave | t=nature | tone=dark | mean=coined compound: moss + grave
+Teaglow | t=playful | tone=warm | mean=coined compound: tea + glow
+Larkmoor | t=landscape | tone=quiet | mean=coined compound: lark + moor
+Oddmere | t=landscape | tone=strange | mean=coined compound: odd + mere
+Drowsmere | t=landscape | tone=quiet | mean=coined compound: drowse + mere
+Saltlark | t=nature | tone=quiet | mean=coined compound: salt + lark
+Hushwillow | t=nature | tone=quiet | mean=coined compound: hush + willow
+Starwick | t=science | tone=bright | mean=coined compound: star + wick
+Inkmoth | t=nature | tone=strange | mean=coined compound: ink + moth
+Plumtide | t=playful | tone=playful | mean=coined compound: plum + tide
+</script>
+<script id="bank-phrase" type="text/plain">
+@ t=nature | tone=quiet
+Ground Zero | tone=bold,dark | mean=the point directly beneath an explosion; strongly associated with the World Trade Center site in New York
+Paper Moon | tone=playful,elegant | mean=a cardboard stage moon; also a 1973 film and a 1930s song
+Red Rain | tone=dark,bold
+Blue Hour | tone=elegant | mean=the stretch of twilight when the sky turns deep blue
+Golden Hour | tone=warm | mean=the soft light shortly after sunrise or before sunset
+Small Hours | mean=the hours just after midnight
+Last Light | tone=quiet,dark | mean=the final light of the day
+Second Sun | tone=strange,bright
+Low Tide
+High Water
+Slack Water | mean=the still moment between tides
+Northern Lights | tone=bright | mean=the aurora borealis
+Southern Cross | mean=a constellation of the southern sky, shown on several national flags
+Morning Star | tone=bright | mean=Venus seen before dawn
+Evening Star | mean=Venus seen after sunset
+Half Moon
+Blood Moon | tone=dark | mean=a reddish total lunar eclipse
+Shooting Star | tone=bright
+Falling Star
+Dog Days | tone=warm | mean=the hottest stretch of summer
+Cold Snap | tone=bold
+Heat Haze | tone=warm,strange
+Sun Shower | tone=bright,playful | mean=rain falling while the sun shines
+Fair Weather | tone=bright
+Summer Rain | tone=warm
+Winter Light
+Spring Thaw | tone=bright
+Late Bloom | tone=warm
+First Frost
+Frost Fair | tone=playful | mean=historic winter fairs held on the frozen River Thames
+Dry Season | tone=warm
+Long Night | tone=dark
+White Night | mean=a summer night when it never gets fully dark
+Polar Night | tone=dark | mean=when the sun stays below the horizon for more than a day
+Midnight Sun | tone=bright | mean=summer sun still visible at midnight near the poles
+Dark Matter | t=science | tone=dark
+Deep Field | t=science | mean=a long-exposure image of a small patch of sky, such as the Hubble Deep Field
+Dead Reckoning | tone=bold | mean=navigating by calculation from a known position
+True North
+Magnetic North | t=science
+Prime Meridian | t=science
+Open Water
+Still Water
+Deep End | tone=playful
+Tide Pool | tone=playful
+Rock Pool
+Salt Flat
+Cloud Nine | tone=playful | mean=a state of great happiness
+Rain Check | tone=playful | mean=a promise to accept an offer later
+Lightning Rod | tone=bold
+Silver Lining | tone=bright | mean=a hopeful side to a bad situation
+Snow Day | tone=playful
+Rainy Day
+@ t=built | tone=quiet
+Glass House | mean=as in the saying about people in glass houses
+Paper House | tone=playful
+Salt House
+Lantern House | tone=warm
+Crooked House | tone=strange | mean=also an Agatha Christie novel
+Tin Roof | tone=warm
+Red Door | tone=bold
+Blue Door
+Open Door | tone=bright
+Seventh Floor | tone=strange
+Top Floor
+Ground Floor
+Upper Room
+Back Room | tone=strange
+Spare Room | tone=playful
+Night Market | t=built,malay | tone=warm | mean=an evening street market; pasar malam in Malaysia
+Morning Market | tone=warm
+Corner Shop | tone=warm
+Quiet Street
+Side Street
+Last Stop | tone=dark | mean=also the title of a 2021 narrative game
+Night Train | tone=quiet,dark
+Slow Train
+Ghost Train | tone=dark,playful | mean=a fairground dark ride
+Paper Lantern | tone=warm
+Glass Garden | tone=elegant
+Sky Garden | tone=bright | mean=also the name of a public garden atop a London skyscraper
+Hanging Garden | tone=elegant
+Stone Garden
+Moon Garden | tone=elegant | mean=a garden of pale flowers planted to be seen at night
+Harbor Light | tone=warm
+Signal Fire | tone=bold
+Bell Tower
+Clock Tower
+Water Tower
+Ivory Tower | tone=elegant | mean=a place of detachment from everyday life (often used critically)
+Fire Escape | tone=bold
+Trap Door | tone=playful,strange
+Back Alley | tone=dark
+Rabbit Hole | tone=strange | mean=a strange or absorbing detour, from Alice in Wonderland
+Crow's Nest | tone=bold | mean=a lookout platform high on a ship's mast
+Windmill Hill
+Salt Road | mean=historic trade routes for salt
+Silk Road | mean=the historic trade routes across Asia; the name was also used by an illegal online market
+Spice Route | mean=historic sea trade routes, including through the Strait of Malacca
+Amber Road | mean=an ancient trade route for amber
+High Road
+Open Road | tone=bright
+Long Way Home | tone=warm
+Picture House | tone=warm | mean=an old word for a cinema
+Glass Tower | tone=elegant
+Paper Bridge
+Rope Bridge | tone=bold
+Stone Circle | tone=strange
+Salt Mine | tone=dark | mean=also slang for a place of dreary hard work
+Lighthouse Keeper
+@ t=abstract | tone=bold
+Second Wind | mean=renewed energy after tiredness
+Long Shot
+Dark Horse | mean=an unexpected contender
+Paper Tiger | mean=something that looks threatening but is powerless
+Slow Burn | tone=warm
+Cold Open | mean=a scene that starts before the opening titles
+Fair Game
+Sleight of Hand | tone=playful
+Tall Tale | tone=playful
+Loose Thread | tone=quiet
+Common Thread | tone=quiet
+Odd Socks | tone=playful
+Odd One Out | tone=playful
+Lucky Break | tone=playful
+Clean Slate | tone=bright
+Blank Page | tone=quiet
+Blank Canvas | tone=quiet
+Fresh Ink
+Plot Twist | tone=playful
+Happy Accident | tone=playful
+Fool's Gold | tone=playful | mean=pyrite; something that only looks valuable
+Fool's Errand | tone=playful | mean=a pointless task
+Wishing Well | tone=warm
+Make Believe | tone=playful
+Hide and Seek | tone=playful
+Cat and Mouse | tone=playful
+Cloak and Dagger | tone=dark | mean=intrigue and espionage
+Smoke and Mirrors | tone=strange | mean=deceptive illusion
+Bells and Whistles | tone=playful
+Odds and Ends | tone=playful
+Rhyme and Reason
+Sticks and Stones
+Moth and Flame | tone=dark
+Pins and Needles | tone=playful
+Needle and Thread | tone=quiet
+Pen and Paper
+Bow and Arrow
+Brick and Mortar | mean=a physical shop rather than an online one
+Heads or Tails | tone=playful
+Ink and Ivory | tone=elegant
+Salt and Pepper | tone=playful
+Copper and Coal | tone=warm
+Lantern and Key | tone=warm
+Sun and Moon | tone=bright
+Fire and Salt
+Honey and Ash | tone=strange
+Wolf and Lantern | tone=dark
+Paper and String | tone=playful
+Tea and Thunder | tone=playful
+Fox and Fiddle | tone=playful
+Bone and Velvet | tone=dark
+Moss and Marble | tone=elegant
+Ink and Ember | tone=warm
+Quick Study | mean=someone who learns fast
+Fast Friends | tone=warm
+Good Company | tone=warm
+Small Talk | tone=playful
+Inside Joke | tone=playful
+Open Secret | tone=strange | mean=something supposedly secret that everyone knows
+Plain Sight | mean=as in hidden in plain sight
+Common Ground
+Middle Distance
+Fine Print
+Last Word
+First Draft
+First Edition | tone=elegant
+Silent Partner
+Grand Tour | tone=elegant | mean=the traditional European journey of young aristocrats (also the title of a motoring TV show)
+Velvet Rope | tone=elegant
+Ivory Keys | tone=elegant
+Still Life | tone=elegant | mean=an artwork of arranged objects
+Long Exposure | tone=quiet
+Slow Dance | tone=warm
+Open Letter
+Soft Light | tone=quiet
+Half Measure | tone=dark
+Dead Air | tone=dark | mean=unintended silence during a broadcast
+Radio Silence | tone=dark | mean=a period of no communication
+White Noise | tone=quiet | mean=steady random sound; also a 1985 novel
+Short Wave | t=science
+Signal Flare
+Smoke Signal
+@ t=myth | tone=elegant
+Paper Crown | tone=playful
+Glass Slipper | mean=from the Cinderella story
+Golden Fleece | mean=the prize sought by Jason and the Argonauts
+Siren Song | tone=dark | mean=an alluring but dangerous appeal
+Swan Song | tone=quiet | mean=a final performance
+Tin Soldier | tone=playful | mean=from Andersen's The Steadfast Tin Soldier
+Snow Queen | mean=a fairy tale by Hans Christian Andersen
+Green Knight | tone=strange | mean=the challenger in the Arthurian poem Sir Gawain and the Green Knight
+Fisher King | tone=dark | mean=the wounded keeper of the Grail in Arthurian legend
+Round Table
+Seven Seas | tone=bold
+Ninth Wave | tone=bold | mean=in sailors' lore, the largest wave in a series
+Second Sight | tone=strange | mean=the supposed ability to see the future
+Fourth Wall | tone=playful | mean=the imaginary wall between performers and audience
+Twelfth Night | mean=also the title of a Shakespeare comedy
+Tall Ships | tone=bold
+Flying Dutchman | tone=dark | mean=a legendary ghost ship
+Treasure Map | tone=playful
+Sea Shanty | tone=playful
+Whale Song
+Witching Hour | tone=dark | mean=midnight, when magic was said to be strongest
+Ghost Light | tone=dark | mean=a single lamp left on in an empty theater
+Bone Orchard | tone=dark | mean=old slang for a cemetery
+Black Sheep | tone=dark | mean=the odd one out in a family or group
+Grey Wolf | tone=bold
+Red Sky | tone=bold | mean=from the sailors' weather rhyme about red skies at night and morning
+Magic Lantern | tone=warm | mean=an early image projector
+Camera Obscura | tone=strange | mean=a darkened room or box that projects an image through a small hole
+Shadow Play | tone=strange | mean=storytelling with shadow puppets
+Music Box | tone=warm
+Spinning Top | tone=playful
+Paper Doll | tone=playful
+Silver Screen | mean=a nickname for the cinema
+Golden Age | tone=bright
+Bronze Age | tone=bold
+Iron Age | tone=bold
+Stone Age | tone=playful
+Space Age | tone=bright
+Jazz Age | tone=warm | mean=the 1920s
+Clockwork Heart | tone=strange
+Moving Parts
+Spare Parts | tone=playful
+Night Shift | tone=dark
+Graveyard Shift | tone=dark | mean=a work shift through the small hours
+Steam Engine | tone=bold
+Copper Wire
+Pocket Watch
+Vacuum Tube | tone=strange
+Northern Star | tone=bright
+Wandering Star | tone=quiet
+Hollow Crown | tone=dark | mean=from Shakespeare's Richard II
+Iron Crown | tone=bold
+Paper Boat | tone=playful
+Paper Plane | tone=playful
+Paper Kite | tone=playful
+Sea Glass | tone=quiet | mean=glass worn smooth by the sea
+@ t=playful | tone=playful
+Lemon Drop
+Lemon Tree
+Pickle Jar
+Cookie Jar
+Biscuit Tin
+Tea Party | mean=also the name of a US political movement
+Sock Puppet | tone=strange | mean=a hand puppet; also a fake online identity
+Pillow Fort
+Blanket Fort
+Lazy Sunday
+Saturday Morning
+Sunday Best | mean=one's best clothes
+Bright Side | tone=bright
+Sunny Side | tone=bright
+Small Wonder | mean=as in no wonder; also a 1980s sitcom
+Odd Duck | mean=an eccentric person
+Lucky Cat | mean=the beckoning cat figurine (maneki-neko)
+Night Owl | mean=someone who stays up late
+Early Bird | mean=someone who rises early
+Busy Bee
+Happy Camper
+Cheeky Monkey
+Mango Tree | t=playful,malay
+Coconut Grove | t=playful,malay
+Gentle Giant | tone=warm
+Rubber Boots
+Jelly Bean
+Marble Run
+Toy Rocket
+Tin Robot
+Cardboard Castle
+Pocket Comet
+Storm in a Teacup | mean=a big fuss about something small
+Goldfish Bowl
+Kite Festival
+Sugar Rush
+Banana Boat
+Bouncy Castle
+Duck Pond
+Lost and Found
+Show and Tell
+Rise and Shine | tone=bright
+Sink or Swim | tone=bold
+@ t=malay | k=foreign | lang=Malay | tone=elegant
+Pasar Malam | tone=warm | mean=night market | say=PAH-sar MAH-lahm
+Teh Tarik | tone=warm,playful | mean=pulled milk tea, a popular Malaysian drink | say=teh TAH-rik
+Kopi O | tone=warm | mean=black coffee with sugar, a classic kopitiam order | say=KOH-pee OH
+Wau Bulan | mean=moon kite, a traditional Kelantanese kite design | say=WOW BOO-lahn
+Rumah Api | mean=lighthouse (literally fire house) | say=ROO-mah AH-pee
+Langit Senja | mean=twilight sky | say=LAH-ngit SEN-jah
+Bulan Purnama | mean=full moon | say=BOO-lahn poor-NAH-mah
+Kapal Layar | mean=sailing ship | say=KAH-pahl LAH-yar
+Angin Timur | mean=east wind | say=AH-ngin TEE-moor
+Bayu Malam | tone=quiet | mean=night breeze | say=BAH-yoo MAH-lahm
+Embun Pagi | tone=quiet | mean=morning dew | say=EM-boon PAH-gee
+Hujan Panas | mean=a sunshower; rain while the sun shines (literally hot rain) | say=HOO-jahn PAH-nahs
+Sang Kancil | tone=playful | mean=the clever mouse-deer of Malay folk tales | say=sahng KAHN-chil
+Bunga Raya | tone=bright | mean=hibiscus, Malaysia's national flower | say=BOO-ngah RAH-yah
+Bintang Timur | mean=the eastern star; the morning star | say=BIN-tahng TEE-moor
+Pulau Kertas | tone=playful | mean=paper island | say=POO-lau ker-TAHS
+Pelita Malam | tone=warm | mean=night lamp | say=peh-LEE-tah MAH-lahm
+Hutan Hujan | tone=bold | mean=rainforest | say=HOO-tahn HOO-jahn
+Ombak Biru | mean=blue wave | say=OM-bak BEE-roo
+Awan Putih | tone=quiet | mean=white cloud | say=AH-wahn POO-tih
+</script>
+<script id="bank-suffix" type="text/plain">
+@ s=conventional
+Games
+Studios
+Studio
+Game Studio
+Interactive
+Entertainment
+Works
+Digital
+Software
+Collective
+Productions
+Labs
+Media
+Creative
+Company
+Arts
+Workshop | g=studio
+Publishing
+Ventures
+Group
+@ s=experimental
+Atelier | g=studio | tone=elegant | mean=French for workshop or artist's studio | say=at-ul-YAY
+Foundry | tone=bold
+Guild | tone=bold
+Society | tone=elegant
+House | tone=warm
+Assembly | tone=bold
+Arcade | tone=playful
+Kitchen | tone=warm,playful
+Bureau | tone=elegant,strange
+Observatory | tone=elegant
+Club | tone=playful
+Parlour | tone=elegant | mean=British spelling of parlor
+Playhouse | tone=playful
+Press | tone=quiet
+Toybox | tone=playful
+Department | tone=strange
+Institute | tone=strange
+Cooperative | tone=warm
+</script>
+<!-- Short local list of well-known studio names. A generated name matching one is skipped. This is NOT a clearance check. -->
+<script id="known-studios" type="text/plain">
+Remedy, Obsidian, Insomniac, Bungie, Valve, Rare, Relic, Massive, Avalanche, Monolith, Blizzard, Riot, Epic, Raven, Respawn, Bluepoint, Supergiant, Hinterland, Behaviour, Paradox, Frontier, Rebellion, Housemarque, Guerrilla, Arkane, Firaxis, Ensemble, Lionhead, Treyarch, Rocksteady, Naughty Dog, Bethesda, Ubisoft, Sega, Capcom, Konami, Atlus, Mojang, Klei, Annapurna, Devolver, Playdead, Inkle, Simogo, Landfall, Facepunch, Techland, Crytek, Starbreeze, Harmonix, Codemasters, Ironclad, BioWare, Activision, Gearbox, Bohemia, Wargaming, Rovio, Supercell, Zynga, Niantic, Mediatonic, Bossa, Mimimi, Sumo, Sharkmob, Stoic, Tequila Works, Nomada, Mobius, Motion Twin, Hazelight, Unknown Worlds, Wildcard, Poncle, Zachtronics, Fullbright, Hopoo, Witch Beam, Nerial, Mossmouth, Asobo, Spiders, Cyanide, Quantic Dream, Dontnod, Amplitude, Ankama, Ninja Kiwi, Halfbrick, Vlambeer, Nolla, Coatsink, Jagex, Psygnosis, Criterion, Frictional, Red Barrels, Eidos, Compulsion, Typhoon, Ludia, Kabam, Thunder Lotus, Red Hook, Night School, Double Fine, Hello Games, Giant Squid, Campo Santo, Moon Studios, Mega Crit, Team Cherry, Iron Galaxy, Blue Byte, Black Isle, Red Storm, Sucker Punch, Media Molecule, Ninja Theory, Splash Damage, Sledgehammer, Infinity Ward, High Moon, Toys for Bob, Turtle Rock, Iron Gate, Ghost Ship, Coffee Stain, Thunderful, Raw Fury, Big Huge Games, Black Forest Games, Cold Iron, Blue Mammoth, Bad Robot, Lemon Sky, Passion Republic, Kurechii, Toge Productions, Agate, Mojiken, Uplift Games, Gamefam, BIG Games, Red Thread, Red Candle, Cloud Imperium, Grinding Gear, Digital Extremes, Warhorse, Flying Wild Hog, People Can Fly, Bloober, CD Projekt, State of Play, Ustwo, Roll7, Firesprite, Ballistic Moon, Lucid Games, Steel City Interactive, Velan, Crystal Dynamics, Square Enix, Kojima Productions, Platinum Games, Grasshopper, Vanillaware, Cygames, Game Freak, HAL Laboratory, Intelligent Systems, Retro Studios, Next Level Games, Monolith Soft, Mistwalker, Tango Gameworks, Machine Games, Piranha Bytes, Daedalic, Yager, Bigpoint, Wooga, Kolibri Games, Keen Games, Rockstar, Cloud Chamber, Ghost Story Games, Nightdive, Free Lives, Heart Machine, Fireproof, Giant Sparrow, Sad Owl, Lazy Bear Games, Dodge Roll, Wolfeye, Capybara Games, Calypso Media, Ghostlight, Looking Glass, Valhalla, Red Kite Games, Blue Isle, Kinetic Games, Playground Games, Arc System Works, Spike Chunsoft, Gameloft, NetEase, Tencent, Miniclip, Outfit7, Kiloo, SYBO, Voodoo, Ketchapp, Lion Studios, Moon Active, Playrix, Scopely, Jam City, Big Fish Games, PopCap, Toca Boca, Sago Mini, Hyper Hippo, Kongregate, Armor Games, Newgrounds, Raw Thrills, Harvest Moon, Mountains
+</script>
+
+<script>
+"use strict";
+/* ===================== utilities ===================== */
+const $ = (s, r = document) => r.querySelector(s);
+const el = (tag, attrs = {}, ...kids) => {
+  const n = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === "class") n.className = v;
+    else if (k === "text") n.textContent = v;
+    else if (k.startsWith("on")) n.addEventListener(k.slice(2), v);
+    else n.setAttribute(k, v === true ? "" : v);
+  }
+  for (const k of kids.flat()) if (k != null && k !== false) n.append(k.nodeType ? k : document.createTextNode(String(k)));
+  return n;
+};
+const fmt = n => Number(n).toLocaleString("en-US");
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+// All imported or typed text is rendered with textContent only. clean() also strips control characters, odd symbols and extra spaces.
+const clean = (s, max = 60) => String(s ?? "").normalize("NFC").replace(/[\u0000-\u001f\u007f​-‏‪-‮]/g, " ").replace(/\s+/g, " ").trim().slice(0, max);
+const cleanEntry = s => clean(s, 48).replace(/[^\p{L}\p{N} '&.\-]/gu, "").replace(/\s+/g, " ").trim();
+const norm = s => clean(s).toLowerCase();
+const nrm = s => String(s).toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g, "");
+const today = () => new Date().toISOString().slice(0, 10);
+const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
+
+const store = (() => {
+  let ok = false; const mem = {};
+  try { const k = "__snr_t"; localStorage.setItem(k, "1"); localStorage.removeItem(k); ok = true; } catch (e) {}
+  return {
+    ok,
+    get(k, d) { try { const v = ok ? localStorage.getItem("snr:" + k) : mem[k]; return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set(k, v) { const s = JSON.stringify(v); try { if (ok) localStorage.setItem("snr:" + k, s); else mem[k] = s; } catch (e) { mem[k] = s; toast("Storage is full or blocked; export a backup"); } }
+  };
+})();
+let toastT;
+function toast(msg) { const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, 2300); }
+async function copyText(txt) {
+  try { await navigator.clipboard.writeText(txt); toast("Copied"); }
+  catch (e) { openDialog("Copy", txt, null); toast("Clipboard blocked here: select the text and copy"); }
+}
+let dlgFile = null;
+function openDialog(title, text, file) {
+  $("#dlg-h").textContent = title; $("#dlg-text").value = text; dlgFile = file; $("#dlg-dl").hidden = !file;
+  const d = $("#dlg"); if (d.showModal) d.showModal(); else d.setAttribute("open", "");
+  $("#dlg-text").select();
+}
+function download(name, text, type) {
+  try {
+    const url = URL.createObjectURL(new Blob([text], { type }));
+    const a = el("a", { href: url, download: name }); document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (e) { toast("Download blocked here; use Copy"); }
+}
+// two-click confirmation for destructive buttons (dialogs like confirm() are not used)
+const armed = new Map();
+function confirmClick(btn, label, fn) {
+  btn.addEventListener("click", () => {
+    if (armed.get(btn)) { clearTimeout(armed.get(btn)); armed.delete(btn); btn.textContent = label; fn(); return; }
+    btn.textContent = "Click again to confirm";
+    armed.set(btn, setTimeout(() => { armed.delete(btn); btn.textContent = label; }, 3500));
+  });
+}
+
+/* ===================== vocabulary model ===================== */
+const THEMES = { nature: "Nature & weather", landscape: "Geography & landscape", built: "Architecture & industry", science: "Astronomy & science", myth: "Literature & myth", abstract: "Abstract ideas", playful: "Warm & playful", everyday: "Everyday objects", malay: "Malay & Nusantara", custom: "My words (untagged)" };
+const TONES = { elegant: "Elegant", dark: "Dark & atmospheric", bright: "Bright", quiet: "Quiet", playful: "Playful", strange: "Strange", bold: "Bold", warm: "Warm" };
+const THEME_KEYS = Object.keys(THEMES), TONE_KEYS = Object.keys(TONES);
+const TBIT = Object.fromEntries(THEME_KEYS.map((k, i) => [k, 1 << i]));
+const OBIT = Object.fromEntries(TONE_KEYS.map((k, i) => [k, 1 << i]));
+// Coherent mode avoids these tone pairings unless the two words also share a tone.
+const CLASH_PAIRS = [["dark", "playful"], ["dark", "bright"], ["elegant", "playful"]];
+const CLASH_OF = {}; TONE_KEYS.forEach(t => CLASH_OF[t] = 0);
+for (const [a, b] of CLASH_PAIRS) { CLASH_OF[a] |= OBIT[b]; CLASH_OF[b] |= OBIT[a]; }
+const KIND = { word: "Real word", name: "Proper name", invented: "Invented", foreign: "Non-English" };
+const CATS = { mod: "Modifier", core: "Core word", single: "Standalone name", phrase: "Phrase", suffix: "Suffix" };
+const CAT_PLURAL = { mod: "Modifiers", core: "Core words", single: "Standalone names", phrase: "Phrases", suffix: "Suffixes" };
+const SMALL = new Set(["and", "of", "the", "or", "in", "a", "an", "on", "to"]);
+const MODES = { composed: { label: "Composed", slots: [["mod", "Modifier"], ["core", "Core word"]] }, single: { label: "Single name", slots: [["single", "Name"]] }, phrase: { label: "Phrase", slots: [["phrase", "Phrase"]] } };
+
+function stem(t) {
+  let s = t;
+  if (s.length > 4 && s.endsWith("ing")) s = s.slice(0, -3);
+  else if (s.length > 4 && s.endsWith("ies")) s = s.slice(0, -3) + "y";
+  else if (s.length > 4 && (s.endsWith("es") && /(s|x|z|ch|sh)es$/.test(s))) s = s.slice(0, -2);
+  else if (s.length > 3 && s.endsWith("s") && !s.endsWith("ss")) s = s.slice(0, -1);
+  if (s.length > 4 && s.endsWith("ed")) s = s.slice(0, -2);
+  else if (s.length > 4 && s.endsWith("en")) s = s.slice(0, -2);
+  else if (s.length > 4 && s.endsWith("y")) s = s.slice(0, -1);
+  return s;
+}
+function initialSound(w) {
+  const s = w.toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g, "");
+  if (!s) return "";
+  if (/^ph/.test(s)) return "f";
+  if (/^(kn|gn)/.test(s)) return "n";
+  if (/^wr/.test(s)) return "r";
+  if (/^ps/.test(s)) return "s";
+  if (/^(ch|sh|th)/.test(s)) return s.slice(0, 2);
+  if (/^c[eiy]/.test(s)) return "s";
+  if (/^[cq]/.test(s)) return "k";
+  if (/^x/.test(s)) return "z";
+  return s[0];
+}
+function pluralize(phrase) {
+  const ws = phrase.split(" "); const w = ws.pop(); let p;
+  if (/[^aeiou]y$/i.test(w)) p = w.slice(0, -1) + "ies";
+  else if (/(s|x|z|ch|sh)$/i.test(w)) p = w + "es";
+  else p = w + "s";
+  return [...ws, p].join(" ");
+}
+function parseFields(parts) {
+  const f = {};
+  for (let p of parts) {
+    p = p.trim(); if (!p) continue;
+    for (const tok of p.split(/\s+(?=[a-z]+=)/)) {
+      const m = tok.match(/^([a-z]+)\s*=\s*(.*)$/i);
+      if (m) {
+        const k = m[1].toLowerCase(), v = clean(m[2], 200);
+        if (["t", "tone", "g", "x"].includes(k)) f[k] = v.toLowerCase().split(/[,\s]+/).filter(Boolean);
+        else f[k] = v;
+      } else if (/^e$/i.test(tok)) f.e = true;
+    }
+  }
+  return f;
+}
+function parseLines(text, cat, src, report) {
+  const out = []; let defs = {};
+  for (let raw of String(text || "").split(/\r?\n/)) {
+    raw = raw.replace(/ /g, " ").trim();
+    if (!raw || raw.startsWith("#")) continue;
+    if (raw.startsWith("@")) { defs = parseFields(raw.slice(1).split("|")); continue; }
+    const parts = raw.split("|");
+    const t = cleanEntry(parts[0]);
+    if (!t) { report && report.push({ raw, problem: "empty" }); continue; }
+    const f = parseFields(parts.slice(1));
+    const merged = { ...defs, ...f };
+    if (!f.t && defs.t) merged.t = defs.t;
+    out.push(makeEntry(cat, t, merged, src, raw));
+  }
+  return out;
+}
+function makeEntry(cat, text, f, src, line) {
+  const words = text.split(" ");
+  const sig = words.filter(w => !SMALL.has(w.toLowerCase()));
+  const e = {
+    cat, key: norm(text), text, src, line: line || text,
+    themes: (f.t || []).filter(t => THEMES[t]), tones: (f.tone || []).filter(t => TONES[t]),
+    kind: KIND[f.k] ? f.k : "word", lang: f.lang || "", mean: f.mean || "", say: f.say || "",
+    groups: f.g || [], avoid: f.x || [], exp: !!f.e, words: words.length, len: text.length,
+    nrm: nrm(text),
+    stems: sig.map(w => stem(w.toLowerCase().normalize("NFD").replace(/[^a-z0-9]/g, ""))).filter(Boolean),
+    sounds: sig.map(initialSound).filter(Boolean)
+  };
+  if (src === "custom" && !e.themes.length) e.themes = ["custom"];
+  e.themeMask = e.themes.reduce((m, t) => m | (TBIT[t] || 0), 0);
+  e.toneMask = e.tones.reduce((m, t) => m | OBIT[t], 0);
+  e.clashMask = e.tones.reduce((m, t) => m | CLASH_OF[t], 0);
+  e.studio = e.groups.includes("studio");
+  if (cat === "mod") e.role = ["adj", "noun", "ord", "num"].includes(f.r) ? f.r : "adj";
+  if (cat === "core") {
+    e.nk = f.n === "m" ? "mass" : "count";
+    e.pl = e.nk === "count" ? (f.pl ? cleanEntry(f.pl) : pluralize(text)) : text;
+    e.plLen = e.pl.length; e.plNrm = nrm(e.pl);
+    e.plStems = e.pl.split(" ").filter(w => !SMALL.has(w.toLowerCase())).map(w => stem(w.toLowerCase().replace(/[^a-z0-9]/g, "")));
+  }
+  if (cat === "suffix") e.style = f.s === "experimental" ? "experimental" : "conventional";
+  return e;
+}
+const EMPTY = makeEntry("suffix", "", {}, "builtin"); EMPTY.text = ""; EMPTY.key = ""; EMPTY.len = 0; EMPTY.words = 0; EMPTY.stems = []; EMPTY.sounds = []; EMPTY.nrm = ""; EMPTY.empty = true;
+
+/* known-studio list: entries ending in a studio suffix word match the full name; others match the base name */
+const SUFFIX_WORDS = new Set(["games", "studios", "studio", "interactive", "entertainment", "productions", "media", "works", "software", "digital", "gameworks", "laboratory"]);
+const BLOCK_BASE = new Set(), BLOCK_FULL = new Set(), BLOCK_FULL_BASES = new Set();
+function loadKnown() {
+  for (const raw of $("#known-studios").textContent.split(",")) {
+    const n = clean(raw); if (!n) continue;
+    const last = n.split(" ").pop().toLowerCase();
+    if (SUFFIX_WORDS.has(last) && n.includes(" ")) { BLOCK_FULL.add(nrm(n)); BLOCK_FULL_BASES.add(nrm(n.split(" ").slice(0, -1).join(" "))); }
+    else BLOCK_BASE.add(nrm(n));
+  }
+}
+
+/* ===================== bank assembly ===================== */
+const CAT_KEYS = ["mod", "core", "single", "phrase", "suffix"];
+let CUSTOM = Object.assign({ mod: [], core: [], single: [], phrase: [], suffix: [] }, store.get("custom", {}));
+let HIDDEN = new Set(store.get("hidden", []));
+let ALL = {}, BANK = {}, bankVersion = 0;
+function buildBank() {
+  for (const cat of CAT_KEYS) {
+    const map = new Map();
+    for (const e of parseLines($("#bank-" + cat).textContent, cat, "builtin")) if (!map.has(e.key)) map.set(e.key, e);
+    for (const line of CUSTOM[cat]) for (const e of parseLines(line, cat, "custom")) if (!map.has(e.key)) map.set(e.key, e);
+    ALL[cat] = [...map.values()];
+    BANK[cat] = ALL[cat].filter(e => !HIDDEN.has(cat + ":" + e.key));
+  }
+  bankVersion++; enumCache.clear();
+}
+function saveCustom() { store.set("custom", CUSTOM); store.set("hidden", [...HIDDEN]); }
+
+/* ===================== settings ===================== */
+const DEFAULTS = { mode: "composed", style: "coherent", theme: "all", tone: "all", maxLen: 32, suffix: "roll", sufStyle: "conventional", allit: "some", invented: true, foreign: true, vocab: "mixed", sound: false, motion: null };
+const state = Object.assign({}, DEFAULTS, store.get("settings", {}), { locks: [false, false, false], current: null });
+let favorites = store.get("favorites", []);
+let history = store.get("history", []);
+let rolling = false;
+const reduceMotion = () => state.motion === true || (state.motion == null && matchMedia("(prefers-reduced-motion: reduce)").matches);
+function saveSettings() { const { mode, style, theme, tone, maxLen, suffix, sufStyle, allit, invented, foreign, vocab, sound, motion } = state; store.set("settings", { mode, style, theme, tone, maxLen, suffix, sufStyle, allit, invented, foreign, vocab, sound, motion }); }
+
+/* ===================== rules ===================== */
+function entryOk(e) {
+  if (!state.invented && e.kind === "invented") return false;
+  if (!state.foreign && e.kind === "foreign") return false;
+  if (state.style === "coherent" && e.exp) return false;
+  return true;
+}
+const themeHit = mask => state.theme === "all" || (mask & TBIT[state.theme]) !== 0;
+const toneHit = mask => state.tone === "all" || (mask & OBIT[state.tone]) !== 0;
+const toneClash = (aMask, aClash, bMask, bClash) => (aMask & bMask) === 0 && ((aClash & bMask) !== 0 || (bClash & aMask) !== 0);
+function stemClash(a, b) {
+  for (const x of a) for (const y of b) {
+    if (x === y) return true;
+    if (x.length >= 4 && y.length >= 4 && (x.startsWith(y) || y.startsWith(x))) return true;
+  }
+  return false;
+}
+function groupClash(a, b) { for (const g of a) if (b.groups.includes(g) || b.key === g) return true; return false; }
+function allitOk(s1, s2) {
+  // opening sounds of the full name; small words already removed
+  const n1 = s1.length, n = n1 + s2.length;
+  if (state.allit === "some") {
+    for (let i = 0; i < n; i++) {
+      const x = i < n1 ? s1[i] : s2[i - n1]; let c = 0;
+      for (let j = 0; j < n; j++) if ((j < n1 ? s1[j] : s2[j - n1]) === x && ++c >= 3) return false;
+    }
+    return true;
+  }
+  let adj = false;
+  for (let i = 1; i < n && !adj; i++) if ((i < n1 ? s1[i] : s2[i - n1]) === (i - 1 < n1 ? s1[i - 1] : s2[i - 1 - n1])) adj = true;
+  return state.allit === "avoid" ? !adj : adj;
+}
+function suffixPool() {
+  if (state.suffix === "none") return [EMPTY];
+  let arr = BANK.suffix.filter(s => state.sufStyle === "all" || s.style === "conventional");
+  if (state.vocab === "custom" && arr.some(s => s.src === "custom")) arr = arr.filter(s => s.src === "custom");
+  return state.suffix === "roll" ? [EMPTY, ...arr] : arr;
+}
+function wordPool(cat, mode) {
+  let arr = BANK[cat].filter(entryOk);
+  if (state.vocab === "custom") arr = arr.filter(e => e.src === "custom");
+  if (mode !== "composed") arr = arr.filter(e => themeHit(e.themeMask) && toneHit(e.toneMask));
+  return arr;
+}
+function slotDefs(mode = state.mode) {
+  const s = MODES[mode].slots.map(([cat, label]) => ({ cat, label }));
+  if (state.suffix !== "none") s.push({ cat: "suffix", label: "Suffix" });
+  return s;
+}
+function pools(mode, fixed) {
+  const defs = slotDefs(mode), c = state.current && state.current.mode === mode ? state.current : null;
+  const P = defs.map((d, i) => fixed[i] && c ? [d.cat === "suffix" ? c.suffix : c.parts[i]] : (d.cat === "suffix" ? suffixPool() : wordPool(d.cat, mode)));
+  if (state.suffix === "none") P.push([EMPTY]);
+  return P; // last pool is always the suffix pool
+}
+// scratch object for the current base during enumeration
+function sufOk(b, s) {
+  const len = s.empty ? b.len : b.len + 1 + s.len;
+  if (len > state.maxLen) return false;
+  if (s.empty) return allitOk(b.sounds, EMPTY.sounds);
+  if (b.words + s.words > 5) return false;
+  if (b.studio || stemClash(b.stems, s.stems)) return false;
+  if (state.style === "coherent" && toneClash(b.toneMask, b.clashMask, s.toneMask, s.clashMask)) return false;
+  if (!allitOk(b.sounds, s.sounds)) return false;
+  if (BLOCK_FULL_BASES.has(b.nrm) && BLOCK_FULL.has(b.nrm + s.nrm)) return false;
+  return true;
+}
+function composedBase(m, c) {
+  if (stemClash(m.stems, c.stems) || groupClash(m.groups, c) || groupClash(c.groups, m)) return null;
+  if (m.avoid.length && (m.avoid.includes(c.key) || m.avoid.some(a => c.groups.includes(a)))) return null;
+  if (c.avoid.length && (c.avoid.includes(m.key) || c.avoid.some(a => m.groups.includes(a)))) return null;
+  const plural = m.role === "num";
+  if (plural && c.nk !== "count") return null;
+  if (state.style === "coherent" && toneClash(m.toneMask, m.clashMask, c.toneMask, c.clashMask)) return null;
+  if (!themeHit(m.themeMask | c.themeMask) || !toneHit(m.toneMask | c.toneMask)) return null;
+  const len = m.len + 1 + (plural ? c.plLen : c.len);
+  if (len > state.maxLen) return null;
+  const n = m.nrm + (plural ? c.plNrm : c.nrm);
+  if (BLOCK_BASE.has(n)) return null;
+  return { text: m.text + " " + (plural ? c.pl : c.text), len, words: m.words + c.words, stems: m.stems.concat(plural ? c.plStems : c.stems), sounds: m.sounds.concat(c.sounds), toneMask: m.toneMask | c.toneMask, clashMask: m.clashMask | c.clashMask, studio: m.studio || c.studio, nrm: n, plural };
+}
+function singleBase(e) {
+  if (e.len > state.maxLen || BLOCK_BASE.has(e.nrm)) return null;
+  return { text: e.text, len: e.len, words: e.words, stems: e.stems, sounds: e.sounds, toneMask: e.toneMask, clashMask: e.clashMask, studio: e.studio, nrm: e.nrm, plural: false };
+}
+
+/* exact enumeration; cached per settings+locks */
+const settingsKey = () => [state.style, state.theme, state.tone, state.maxLen, state.suffix, state.sufStyle, state.allit, state.invented, state.foreign, state.vocab].join(",");
+const baseOf = c => c.base || (c.mode === "composed" ? composedBase(c.parts[0], c.parts[1]) : singleBase(c.parts[0]));
+const enumCache = new Map();
+function enumerate(mode, fixed) {
+  const P = pools(mode, fixed);
+  const lockedKeys = P.map((p, i) => fixed[i] && p.length === 1 ? (p[0].cat + ":" + p[0].key) : "").join(",");
+  const ck = [mode, bankVersion, settingsKey(), fixed.map(Number).join(""), lockedKeys].join("|");
+  if (enumCache.has(ck)) return enumCache.get(ck);
+  const S = P[P.length - 1];
+  const A = [], B = [], K = []; let total = 0;
+  if (mode === "composed") {
+    const [M, C] = P;
+    const coherent = state.style === "coherent", maxLen = state.maxLen;
+    const tb = state.theme === "all" ? 0 : TBIT[state.theme], ob = state.tone === "all" ? 0 : OBIT[state.tone];
+    const scratch = { text: "", len: 0, words: 0, stems: null, sounds: null, toneMask: 0, clashMask: 0, studio: false, nrm: "", plural: false };
+    for (let i = 0; i < M.length; i++) {
+      const m = M[i]; const plural = m.role === "num";
+      for (let j = 0; j < C.length; j++) {
+        const c = C[j];
+        if (plural && c.nk !== "count") continue;
+        const len = m.len + 1 + (plural ? c.plLen : c.len);
+        if (len > maxLen) continue;
+        if (tb && !((m.themeMask | c.themeMask) & tb)) continue;
+        if (ob && !((m.toneMask | c.toneMask) & ob)) continue;
+        if (coherent && toneClash(m.toneMask, m.clashMask, c.toneMask, c.clashMask)) continue;
+        if (stemClash(m.stems, plural ? c.plStems : c.stems)) continue;
+        if ((m.groups.length || c.groups.length) && (groupClash(m.groups, c) || groupClash(c.groups, m))) continue;
+        if (m.avoid.length && (m.avoid.includes(c.key) || m.avoid.some(a => c.groups.includes(a)))) continue;
+        if (c.avoid.length && (c.avoid.includes(m.key) || c.avoid.some(a => m.groups.includes(a)))) continue;
+        const n = m.nrm + (plural ? c.plNrm : c.nrm);
+        if (BLOCK_BASE.has(n)) continue;
+        scratch.len = len; scratch.words = m.words + c.words;
+        scratch.stems = m.stems.length === 1 && (plural ? c.plStems : c.stems).length === 1 ? [m.stems[0], (plural ? c.plStems : c.stems)[0]] : m.stems.concat(plural ? c.plStems : c.stems);
+        scratch.sounds = m.sounds.concat(c.sounds);
+        scratch.toneMask = m.toneMask | c.toneMask; scratch.clashMask = m.clashMask | c.clashMask;
+        scratch.studio = m.studio || c.studio; scratch.nrm = n;
+        let k = 0; for (let x = 0; x < S.length; x++) if (sufOk(scratch, S[x])) k++;
+        if (k) { A.push(i); B.push(j); K.push(k); total += k; }
+      }
+    }
+  } else {
+    const [N] = P;
+    for (let i = 0; i < N.length; i++) {
+      const b = singleBase(N[i]); if (!b) continue;
+      let k = 0; for (const s of S) if (sufOk(b, s)) k++;
+      if (k) { A.push(i); B.push(-1); K.push(k); total += k; }
+    }
+  }
+  const res = { P, A, B, K, total, theoretical: P.reduce((t, p) => t * p.length, 1) };
+  if (enumCache.size > 30) enumCache.clear();
+  enumCache.set(ck, res);
+  return res;
+}
+function sampleFrom(mode, E) {
+  // P(base) ∝ number of valid suffixes for it; suffix uniform among those → every valid full name equally likely
+  let r = Math.random() * E.total, idx = 0;
+  for (; idx < E.K.length; idx++) { r -= E.K[idx]; if (r < 0) break; }
+  idx = Math.min(idx, E.K.length - 1);
+  const parts = mode === "composed" ? [E.P[0][E.A[idx]], E.P[1][E.B[idx]]] : [E.P[0][E.A[idx]]];
+  const b = mode === "composed" ? composedBase(parts[0], parts[1]) : singleBase(parts[0]);
+  const S = E.P[E.P.length - 1].filter(s => sufOk(b, s));
+  return { mode, parts, suffix: pick(S), base: b };
+}
+function nameOf(c) {
+  const b = c.base || (c.mode === "composed" ? composedBase(c.parts[0], c.parts[1]) : singleBase(c.parts[0]));
+  const baseText = b ? b.text : (c.mode === "composed" ? c.parts[0].text + " " + (c.parts[0].role === "num" ? c.parts[1].pl : c.parts[1].text) : c.parts[0].text);
+  return { base: baseText, full: c.suffix && !c.suffix.empty ? baseText + " " + c.suffix.text : baseText };
+}
+
+function diagnose(mode, fixed, E) {
+  const defs = slotDefs(mode);
+  for (let i = 0; i < defs.length; i++) if (!E.P[i].length) {
+    if (defs[i].cat === "suffix") return "No suffixes are available. Add some in Add words, or set Suffix to No suffix.";
+    if (state.vocab === "custom") return `My words has no ${CAT_PLURAL[defs[i].cat].toLowerCase()} that pass the filters. Add some in Add words, or switch Vocabulary to Built-in + my words.`;
+    return `No ${CAT_PLURAL[defs[i].cat].toLowerCase()} match theme “${state.theme === "all" ? "any" : THEMES[state.theme]}” and tone “${state.tone === "all" ? "any" : TONES[state.tone]}”. Loosen one of them.`;
+  }
+  if (fixed.some(Boolean)) {
+    const free = enumerate(mode, fixed.map(() => false));
+    const locked = defs.map((d, i) => fixed[i] ? `“${E.P[i][0].empty ? "no suffix" : E.P[i][0].text}”` : null).filter(Boolean).join(" and ");
+    if (free.total) return `Nothing valid fits with ${locked} locked: it clashes with the other reels under the current rules (length ${state.maxLen}, ${state.style} mode, alliteration “${state.allit}”). Unlock it or loosen a filter.`;
+  }
+  return `No valid names with these settings. Try a longer maximum length (now ${state.maxLen}), Experimental mode, or a broader theme or tone.`;
+}
+
+/* ===================== reels ===================== */
+const reelEls = [];
+function buildReels() {
+  const host = $("#reels"); host.replaceChildren(); reelEls.length = 0;
+  const defs = slotDefs();
+  host.style.gridTemplateColumns = `repeat(${defs.length}, minmax(0,1fr))`;
+  defs.forEach((d, i) => {
+    const win = el("div", { class: "window", role: "img", "aria-label": d.label });
+    const strip = el("div", { class: "strip" }); win.append(strip);
+    const lock = el("button", { class: "chip", type: "button", "aria-pressed": String(state.locks[i]), onclick: () => toggleLock(i) }, state.locks[i] ? "Locked" : "Lock");
+    const re = el("button", { class: "chip", type: "button", onclick: () => roll(i) }, "Reroll");
+    lock.setAttribute("aria-label", `Lock ${d.label} reel`); re.setAttribute("aria-label", `Reroll ${d.label} reel`);
+    host.append(el("div", { class: "reel" }, el("span", { class: "reel-label", text: d.label }), win, el("div", { class: "reel-tools" }, lock, re)));
+    win.classList.toggle("locked", state.locks[i]);
+    reelEls.push({ win, strip, lock, re, def: d });
+  });
+}
+function slotEntry(c, i) { const defs = slotDefs(c.mode); return defs[i].cat === "suffix" ? c.suffix : c.parts[i]; }
+function slotText(c, i) {
+  const e = slotEntry(c, i);
+  if (e.empty) return { text: "—", note: "no suffix" };
+  if (c.mode === "composed" && i === 1 && c.parts[0].role === "num") return { text: e.pl };
+  return { text: e.text };
+}
+function makeCell(t, filler) {
+  return el("div", { class: "cell" + (filler ? " filler" : "") }, el("div", {}, el("span", { class: "word", text: t.text }), t.note ? el("span", { class: "note", text: t.note }) : null));
+}
+function fit(cell) {
+  const w = cell.querySelector(".word"); if (!w) return;
+  const maxW = cell.clientWidth - 18, maxH = cell.clientHeight - (cell.querySelector(".note") ? 24 : 10);
+  let size = cell.clientHeight < 100 ? 34 : 46;
+  w.style.fontSize = size + "px";
+  while (size > 12 && (w.scrollWidth > maxW || w.offsetHeight > maxH)) { size -= 2; w.style.fontSize = size + "px"; }
+}
+function paintReel(i) {
+  const r = reelEls[i]; if (!r || !state.current) return;
+  const t = slotText(state.current, i), cell = makeCell(t);
+  r.strip.style.transition = "none"; r.strip.style.transform = "translateY(0)";
+  r.strip.replaceChildren(cell); fit(cell);
+  r.win.setAttribute("aria-label", `${r.def.label}: ${t.note || t.text}`);
+}
+function animateReel(i, target, order, fillers) {
+  const r = reelEls[i], final = makeCell(slotText(target, i));
+  if (reduceMotion()) { r.strip.replaceChildren(final); fit(final); r.win.animate && r.win.animate([{ opacity: .35 }, { opacity: 1 }], { duration: 160 }); return sleep(160); }
+  const n = 9 + order * 5, h = r.win.clientHeight;
+  const cells = [makeCell(slotText(state.current, i), true)];
+  for (let k = 0; k < n; k++) cells.push(makeCell({ text: pick(fillers) }, true));
+  cells.push(final);
+  r.strip.style.transition = "none"; r.strip.style.transform = "translateY(0)";
+  r.strip.replaceChildren(...cells); fit(final); void r.strip.offsetHeight;
+  const dur = 700 + order * 430;
+  r.strip.style.transition = `transform ${dur}ms cubic-bezier(.15,.8,.25,1.04)`;
+  r.strip.style.transform = `translateY(${-(n + 1) * h}px)`;
+  return new Promise(res => setTimeout(() => {
+    r.strip.style.transition = "none"; r.strip.style.transform = "translateY(0)"; r.strip.replaceChildren(final); fit(final);
+    r.win.classList.remove("landed"); void r.win.offsetWidth; r.win.classList.add("landed"); sfx.thunk(); res();
+  }, dur + 20));
+}
+
+/* ===================== sound (off by default) ===================== */
+const sfx = (() => {
+  let ctx = null, tick = null;
+  const ensure = () => { if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } return ctx; };
+  const beep = (f, d, type, g) => {
+    if (!state.sound || !ensure()) return;
+    const o = ctx.createOscillator(), gn = ctx.createGain();
+    o.type = type; o.frequency.value = f; gn.gain.value = g; gn.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + d);
+    o.connect(gn).connect(ctx.destination); o.start(); o.stop(ctx.currentTime + d);
+  };
+  return {
+    ensure,
+    start() { if (!state.sound || reduceMotion()) return; clearInterval(tick); tick = setInterval(() => beep(1250, .02, "square", .02), 75); },
+    stop() { clearInterval(tick); },
+    thunk() { beep(150, .12, "triangle", .18); },
+    chime() { beep(784, .1, "sine", .08); setTimeout(() => beep(1175, .16, "sine", .07), 100); }
+  };
+})();
+
+/* ===================== roll ===================== */
+async function roll(only = null) {
+  if (rolling) return;
+  const defs = slotDefs(), mode = state.mode;
+  const fixed = only == null ? defs.map((d, i) => state.locks[i]) : defs.map((d, i) => i !== only);
+  if (only != null && state.locks[only]) return;
+  if (only == null && fixed.every(Boolean)) { setStatus("Every reel is locked. Unlock one to roll.", true); return; }
+  const E = enumerate(mode, fixed);
+  if (!E.total) { setStatus(diagnose(mode, fixed, E), true); return; }
+  let next, tries = 0; const prev = state.current ? nameOf(state.current).full : "";
+  do { next = sampleFrom(mode, E); } while (E.total > 1 && nameOf(next).full === prev && ++tries < 6);
+  rolling = true; setBusy(true); setStatus("Rolling…");
+  const which = defs.map((d, i) => i).filter(i => !fixed[i]);
+  const fillers = defs.map(d => (d.cat === "suffix" ? BANK.suffix : BANK[d.cat]).map(e => e.text));
+  sfx.start();
+  await Promise.all(which.map((i, k) => animateReel(i, next, k, fillers[i].length ? fillers[i] : ["…"])));
+  sfx.stop();
+  state.current = next; lookPinned = false;
+  defs.forEach((d, i) => paintReel(i));
+  rolling = false; setBusy(false);
+  pushHistory(); renderResult(); renderComboLine();
+  setStatus(`${fmt(E.total)} valid name${E.total === 1 ? "" : "s"} for this roll, each equally likely.`);
+  sfx.chime();
+}
+function setBusy(b) {
+  const defs = slotDefs(), all = defs.every((d, i) => state.locks[i]);
+  const btn = $("#roll"); btn.disabled = b || all; btn.setAttribute("aria-busy", String(b));
+  btn.textContent = b ? "Rolling…" : all ? "All reels locked" : "Roll studio name";
+  reelEls.forEach((r, i) => { r.re.disabled = b || state.locks[i]; r.lock.disabled = b; });
+  document.querySelectorAll(".modebar button").forEach(x => x.disabled = b);
+}
+function setStatus(msg, problem = false) { const s = $("#status"); s.textContent = msg; s.classList.toggle("problem", problem); }
+function toggleLock(i) {
+  if (rolling || !reelEls[i]) return;
+  state.locks[i] = !state.locks[i];
+  const r = reelEls[i]; r.lock.setAttribute("aria-pressed", String(state.locks[i])); r.lock.textContent = state.locks[i] ? "Locked" : "Lock"; r.win.classList.toggle("locked", state.locks[i]);
+  setBusy(false);
+  const defs = slotDefs();
+  if (defs.every((d, j) => state.locks[j])) setStatus("Every reel is locked. Unlock one to roll.", true); else setStatus("");
+  renderComboLine(); renderLockNotes();
+}
+function resetLocks() { state.locks = [false, false, false]; }
+function instantPick(mode) {
+  const E = enumerate(mode, slotDefs(mode).map(() => false));
+  return E.total ? sampleFrom(mode, E) : null;
+}
+function setMode(mode) {
+  if (rolling || mode === state.mode) return;
+  state.mode = mode; resetLocks(); saveSettings();
+  const c = instantPick(mode);
+  syncControls(); buildReels();
+  if (c) { state.current = c; slotDefs().forEach((d, i) => paintReel(i)); renderResult(); setStatus(`Switched to ${MODES[mode].label}. Press Roll for a new one.`); }
+  else { state.current = null; setStatus(diagnose(mode, slotDefs().map(() => false), enumerate(mode, slotDefs().map(() => false))), true); renderResult(); }
+  setBusy(false); renderComboLine();
+}
+
+/* ===================== result + notes ===================== */
+function partsOf(c) { return [...c.parts, ...(c.suffix && !c.suffix.empty ? [c.suffix] : [])]; }
+function renderResult() {
+  const c = state.current;
+  const h = $("#name-out"), pills = $("#pills"), notes = $("#notes");
+  pills.replaceChildren(); notes.replaceChildren();
+  if (!c) { h.textContent = "—"; return; }
+  const n = nameOf(c);
+  h.textContent = n.full;
+  const words = n.full.split(" ").length;
+  pills.append(el("span", { class: "pill warn", text: "Unverified: not checked for existing use or trademarks" }),
+    el("span", { class: "pill", text: `${words} word${words > 1 ? "s" : ""} · ${n.full.length} characters` }),
+    el("span", { class: "pill", text: MODES[c.mode].label + " · " + state.style }));
+  const kinds = new Set(c.parts.map(p => p.kind));
+  for (const k of kinds) if (k !== "word") pills.append(el("span", { class: "pill", text: KIND[k] }));
+  for (const p of partsOf(c)) {
+    const bits = [];
+    if (p.kind === "foreign" && p.lang) bits.push(p.lang);
+    if (p.kind === "invented") bits.push("invented");
+    if (p.mean) bits.push(p.mean);
+    if (p.say) bits.push("say " + p.say);
+    if (p.src === "custom") bits.push("from My words");
+    if (bits.length) notes.append(el("li", {}, el("b", { text: p.text + ": " }), bits.join(" · ")));
+  }
+  if (c.mode === "composed" && c.parts[0].role === "num") notes.append(el("li", {}, el("b", { text: "Grammar: " }), `“${c.parts[0].text}” takes the plural “${c.parts[1].pl}”.`));
+  const isFav = favorites.some(f => f.name === n.full);
+  $("#fav").textContent = isFav ? "★ In shortlist" : "☆ Add to shortlist";
+}
+function snapOf(c) { const n = nameOf(c); return { name: n.full, base: n.base, mode: c.mode, parts: c.parts.map(p => [p.cat, p.key]), suffix: c.suffix && !c.suffix.empty ? c.suffix.key : "" }; }
+function resolveSnap(s) {
+  const parts = s.parts.map(([cat, key]) => ALL[cat] && ALL[cat].find(e => e.key === key));
+  if (parts.some(p => !p)) return null;
+  const suffix = s.suffix ? ALL.suffix.find(e => e.key === s.suffix) : EMPTY;
+  if (!suffix) return null;
+  return { mode: s.mode, parts, suffix };
+}
+
+/* ===================== shortlist ===================== */
+const CHECKLIST = [
+  ["pron", "Can I pronounce it?"],
+  ["spell", "Can someone spell it after hearing it?"],
+  ["genres", "Does it suit multiple genres?"],
+  ["beyond", "Does it work beyond Roblox?"],
+  ["meanings", "Does it have unwanted meanings in markets I care about?"],
+  ["checked", "Have I checked relevant names and trademarks?"]
+];
+const CHECK_SOURCES = ["Web search", "Steam", "itch.io", "Roblox communities", "LinkedIn", "Domain lookup (ICANN)", "MYNIC (.my)", "SSM (business name)", "MyIPO (Malaysia trademarks)", "WIPO Global Brand Database", "TMview", "USPTO", "Other"];
+function saveFavs() { store.set("favorites", favorites); }
+function addFavorite() {
+  const c = state.current; if (!c) return;
+  const s = snapOf(c);
+  if (favorites.some(f => f.name === s.name)) { selectTab("tab-short"); toast("Already in your saved names"); return; }
+  favorites.unshift({ id: uid(), ...s, label: "shortlist", notes: "", checklist: {}, checks: [], compare: false, at: new Date().toISOString() });
+  saveFavs(); renderFavs(); renderResult(); renderCompare(); toast("Added to shortlist");
+}
+function renderFavs() {
+  const host = $("#fav-list"); host.replaceChildren();
+  const f = $("#s-filter").value;
+  const list = favorites.filter(x => f === "all" || (f === "none" ? !x.label : x.label === f));
+  if (!list.length) { host.append(el("li", { class: "empty", text: favorites.length ? "No saved names match this filter." : "No saved names yet. Roll, then press ☆ Add to shortlist." })); return; }
+  const cmpCount = favorites.filter(x => x.compare).length;
+  for (const fav of list) {
+    const label = el("select", { "aria-label": `Label for ${fav.name}`, onchange: e => { fav.label = e.target.value; saveFavs(); renderCompare(); } },
+      [["shortlist", "Shortlist"], ["maybe", "Maybe"], ["", "No label"]].map(([v, t]) => { const o = el("option", { value: v, text: t }); if (fav.label === v) o.selected = true; return o; }));
+    label.style.maxWidth = "130px";
+    const cmp = el("input", { type: "checkbox", id: "cmp-" + fav.id, onchange: e => {
+      if (e.target.checked && favorites.filter(x => x.compare).length >= 5) { e.target.checked = false; toast("Compare holds up to five names"); return; }
+      fav.compare = e.target.checked; saveFavs(); renderCompare(); renderFavs(); } });
+    cmp.checked = !!fav.compare; if (!fav.compare && cmpCount >= 5) cmp.disabled = true;
+    const rm = el("button", { class: "btn small danger", type: "button" }, "Remove");
+    confirmClick(rm, "Remove", () => { favorites = favorites.filter(x => x.id !== fav.id); saveFavs(); renderFavs(); renderCompare(); renderResult(); toast("Removed"); });
+    const notes = el("textarea", { rows: "3", "aria-label": `Notes for ${fav.name}`, placeholder: "Notes: why you like it, concerns, who to ask…" });
+    notes.value = fav.notes || "";
+    let nt; notes.addEventListener("input", () => { clearTimeout(nt); nt = setTimeout(() => { fav.notes = notes.value.slice(0, 2000); saveFavs(); renderCompare(); }, 300); });
+    const cl = el("div", { class: "checklist" }, CHECKLIST.map(([k, q]) => {
+      const sel = el("select", { "aria-label": q, onchange: e => { fav.checklist[k] = e.target.value; saveFavs(); renderCompare(); } },
+        [["", "—"], ["yes", "Yes"], ["no", "No"], ["unsure", "Not sure"]].map(([v, t]) => { const o = el("option", { value: v, text: t }); if ((fav.checklist[k] || "") === v) o.selected = true; return o; }));
+      return el("label", {}, el("span", { text: q }), sel);
+    }));
+    const checks = fav.checks.length
+      ? el("ul", { class: "small", style: "margin:4px 0 0;padding-left:18px" }, fav.checks.map((ck, i) => el("li", {}, `${ck.date} · ${ck.source} · ${ck.scope || "scope not noted"}${ck.finding ? " → " + ck.finding : ""} `,
+        el("button", { class: "btn small", type: "button", "aria-label": "Delete this check record", onclick: () => { fav.checks.splice(i, 1); saveFavs(); renderFavs(); renderCompare(); } }, "Delete"))))
+      : el("p", { class: "small", text: "No checks logged. A name counts as checked only for the searches you log here." });
+    host.append(el("li", {},
+      el("div", { class: "fav-head" },
+        el("div", { style: "min-width:0" }, el("div", { class: "fav-name", text: fav.name }), el("div", { class: "meta", text: `${MODES[fav.mode] ? MODES[fav.mode].label : fav.mode} · saved ${new Date(fav.at).toLocaleDateString()} · checks logged: ${fav.checks.length}` })),
+        el("div", { class: "row" }, label, el("label", { class: "check", for: "cmp-" + fav.id }, cmp, "Compare"),
+          el("button", { class: "btn small", type: "button", onclick: () => openLookup(fav.name, fav.base, fav.id) }, "Look it up"),
+          el("button", { class: "btn small", type: "button", onclick: () => copyText(fav.name) }, "Copy"),
+          el("button", { class: "btn small", type: "button", onclick: () => loadSnap(fav) }, "Load"), rm)),
+      el("div", { class: "fav-body" },
+        el("div", {}, el("div", { class: "small", text: "Notes" }), notes, el("div", { class: "small", style: "margin-top:8px", text: "Checks you have logged" }), checks),
+        el("div", {}, el("div", { class: "small", text: "Naming checklist (your judgment)" }), cl))));
+  }
+}
+function loadSnap(s) {
+  const c = resolveSnap(s);
+  if (!c) { toast("Some of these words are no longer in your bank"); return; }
+  if (state.mode !== c.mode) { state.mode = c.mode; saveSettings(); }
+  if (!c.suffix.empty && state.suffix === "none") { state.suffix = "roll"; saveSettings(); }
+  resetLocks(); state.current = c; syncControls(); buildReels(); slotDefs().forEach((d, i) => paintReel(i)); renderResult(); renderComboLine(); setBusy(false);
+  window.scrollTo({ top: 0, behavior: reduceMotion() ? "auto" : "smooth" });
+}
+function syllables(word) {
+  const w = word.toLowerCase().replace(/[^a-z]/g, ""); if (!w) return 0;
+  let n = (w.match(/[aeiouy]+/g) || []).length;
+  if (w.length > 2 && w.endsWith("e") && !/[aeiouy]le$/.test(w) && !w.endsWith("le") && n > 1) n--;
+  return Math.max(1, n);
+}
+function renderCompare() {
+  const host = $("#cmp-out"); host.replaceChildren();
+  const list = favorites.filter(f => f.compare).slice(0, 5);
+  if (!list.length) { host.append(el("p", { class: "empty", text: "Nothing selected. Tick Compare on saved names in the Shortlist tab." })); return; }
+  const rows = [
+    ["Name", f => el("b", { style: "font:700 18px/1.2 var(--serif);color:var(--cream)", text: f.name })],
+    ["Label", f => f.label === "shortlist" ? "Shortlist" : f.label === "maybe" ? "Maybe" : "—"],
+    ["Words", f => String(f.name.split(" ").length)],
+    ["Letters (no spaces)", f => String(f.name.replace(/[^\p{L}\p{N}]/gu, "").length)],
+    ["Characters", f => String(f.name.length)],
+    ["Syllables (rough estimate)", f => String(f.name.split(" ").reduce((t, w) => t + syllables(w), 0))],
+    ["Initials", f => f.name.split(" ").map(w => w[0]).join("").toUpperCase()],
+    ["Word types", f => { const c = resolveSnap(f); return c ? [...new Set(c.parts.map(p => KIND[p.kind]))].join(", ") : "—"; }],
+    ["Meanings & pronunciation", f => { const c = resolveSnap(f); return c ? partsOf(c).filter(p => p.mean || p.say).map(p => `${p.text}: ${[p.mean, p.say && "say " + p.say].filter(Boolean).join("; ")}`).join(" | ") || "—" : "—"; }],
+    ...CHECKLIST.map(([k, q]) => [q, f => ({ yes: "Yes", no: "No", unsure: "Not sure" })[f.checklist[k]] || "—"]),
+    ["Checks logged", f => f.checks.length ? f.checks.map(c => `${c.date} ${c.source}`).join("; ") : "None"],
+    ["Notes", f => f.notes || "—"]
+  ];
+  host.append(el("div", { class: "tablewrap" }, el("table", { class: "cmp" },
+    el("tbody", {}, rows.map(([label, fn]) => el("tr", {}, el("th", { scope: "row", text: label }), list.map(f => { const v = fn(f); return el("td", {}, v); })))))));
+}
+
+/* ===================== history ===================== */
+function pushHistory() { history.unshift({ ...snapOf(state.current), at: new Date().toISOString() }); history = history.slice(0, 50); store.set("history", history); renderHistory(); }
+function renderHistory() {
+  const host = $("#hist-list"); host.replaceChildren();
+  if (!history.length) { host.append(el("li", { class: "empty", text: "Your rolls appear here." })); return; }
+  history.forEach(h => host.append(el("li", { class: "row", style: "justify-content:space-between" },
+    el("div", { style: "min-width:0" }, el("div", { class: "fav-name", style: "font-size:18px", text: h.name }), el("div", { class: "meta", text: `${MODES[h.mode] ? MODES[h.mode].label : h.mode} · ${new Date(h.at).toLocaleTimeString()}` })),
+    el("div", { class: "row" },
+      el("button", { class: "btn small", type: "button", onclick: () => loadSnap(h) }, "Load"),
+      el("button", { class: "btn small", type: "button", onclick: () => copyText(h.name) }, "Copy"),
+      el("button", { class: "btn small", type: "button", onclick: () => openLookup(h.name, h.base, null) }, "Look it up")))));
+}
+
+/* ===================== look it up ===================== */
+let lookTarget = null, lookPinned = false;
+function openLookup(name, base, favId) { lookTarget = { name, base, favId }; lookPinned = true; selectTab("tab-look"); }
+function renderLookup() {
+  const host = $("#look-out"); host.replaceChildren();
+  if ((!lookTarget || !lookPinned) && state.current) { const n = nameOf(state.current); lookTarget = { name: n.full, base: n.base, favId: null }; }
+  if (!lookTarget) { host.append(el("p", { class: "empty", text: "Roll a name first." })); return; }
+  const { name, base } = lookTarget;
+  const fav = favorites.find(f => f.id === lookTarget.favId) || favorites.find(f => f.name === name);
+  const enc = encodeURIComponent;
+  const slug = nrm(base), fullSlug = nrm(name);
+  const domains = [...new Set([slug + ".com", fullSlug + ".com", slug + "games.com", slug + "studio.com", slug + ".games", slug + ".studio", slug + ".com.my", slug + ".my"])];
+  const q = (label, text) => el("div", { class: "q" }, el("code", { text }), el("button", { class: "btn small", type: "button", "aria-label": `Copy ${label}`, onclick: () => copyText(text) }, "Copy"));
+  const a = (href, text, note) => el("li", {}, el("a", { href, target: "_blank", rel: "noopener noreferrer", text }), note ? el("span", { class: "small", text: " — " + note }) : null);
+  host.append(
+    el("div", { class: "notice", text: `“${name}” is unverified. These links open searches in a new tab; nothing is checked automatically, and finding no results does not mean a name is free to use or register as a trademark.` }),
+    el("h3", { text: "Copyable searches" }),
+    q("studio search", `"${name}" game studio`), q("base search", `"${base}" games`), q("Roblox search", `"${base}" Roblox`), q("trademark search", `"${base}" trademark`),
+    el("div", { class: "links", style: "margin-top:12px" },
+      el("section", {}, el("h4", { text: "Existing game studios" }), el("ul", {},
+        a(`https://www.google.com/search?q=${enc(`"${name}" game studio`)}`, "Web search: studio name"),
+        a(`https://www.google.com/search?q=${enc(`"${base}" games`)}`, "Web search: base name + games"),
+        a(`https://store.steampowered.com/search/?term=${enc(base)}`, "Steam store search", "games and developer names appear in results"),
+        a(`https://itch.io/search?q=${enc(base)}`, "itch.io search"),
+        a(`https://www.linkedin.com/search/results/companies/?keywords=${enc(base)}`, "LinkedIn company search", "may require signing in"))),
+      el("section", {}, el("h4", { text: "Roblox" }), el("ul", {},
+        a(`https://www.roblox.com/search/communities?keyword=${enc(base)}`, "Roblox communities (groups) search"),
+        a(`https://www.google.com/search?q=${enc(`site:roblox.com "${base}"`)}`, "Web search within roblox.com"))),
+      el("section", {}, el("h4", { text: "Domains" }),
+        el("p", { class: "small", text: "Registration data lookups show whether a domain is already registered. They do not reserve anything." }),
+        el("ul", {}, domains.filter(d => !d.endsWith(".my")).map(d => a(`https://lookup.icann.org/en/lookup?name=${enc(d)}`, d, "ICANN Lookup")),
+          a("https://mynic.my/whois", `${slug}.my / ${slug}.com.my`, "MYNIC WHOIS: type the domain on their page")),
+        q("domain list", domains.join(", "))),
+      el("section", {}, el("h4", { text: "Malaysian business name (SSM)" }), el("ul", {},
+        a("https://www.ssm.com.my/", "Companies Commission of Malaysia (SSM)", "business and company registration"),
+        a("https://www.ssm.com.my/PublishingImages/Pages/Legal_Framework/Guidelines/business_name_registration_guidelines_-_final_1.pdf", "SSM Business Name Registration Guidelines (PDF)"),
+        a("https://ezbiz.ssm.com.my/", "ezBiz", "SSM's online business registration portal; needs an account")),
+        el("ul", { class: "small" },
+          el("li", { text: "SSM asks for the meaning or origin of any word that is not Malay or English, or is invented." }),
+          el("li", { text: "Singular vs plural (Studio / Studios), “&” vs “and”, and same-meaning words do not make a name different in SSM's eyes." }),
+          el("li", { text: "Mixed Malay–English names must follow correct word order; names that are too general can be rejected." }),
+          el("li", { text: "A registered company would carry “Sdn. Bhd.”; that is a legal form, not part of the brand name above." }))),
+      el("section", {}, el("h4", { text: "Trademarks" }), el("ul", {},
+        a("https://www.myipo.gov.my/", "MyIPO (Intellectual Property Corporation of Malaysia)"),
+        a("https://iponline2u.myipo.gov.my/", "MyIPO IP Online search", "a free account may be needed"),
+        a("https://branddb.wipo.int/en/", "WIPO Global Brand Database"),
+        a("https://www.tmdn.org/tmview/", "TMview", "searches many national trademark offices"),
+        a("https://tmsearch.uspto.gov/", "USPTO trademark search (United States)"),
+        a("https://www.wipo.int/classifications/nice/en/", "Nice Classification")),
+        el("p", { class: "small", text: "Classes often relevant to a game studio: 9 (downloadable game software), 41 (entertainment, online game services), 28 (games and toys). A professional search covers similar-sounding and translated marks that a quick search misses." })),
+      el("section", {}, el("h4", { text: "Log a check" }),
+        fav ? logForm(fav) : el("div", {}, el("p", { class: "small", text: "Add this name to your shortlist to keep a record of what you checked, where, and when." }),
+          el("button", { class: "btn", type: "button", onclick: () => { if (state.current && nameOf(state.current).full === name) { addFavorite(); renderLookup(); } else toast("Load the name first, then add it"); } }, "Add to shortlist")))));
+}
+function logForm(fav) {
+  const src = el("select", { id: "lg-src", "aria-label": "Source checked" }, CHECK_SOURCES.map(s => el("option", { value: s, text: s })));
+  const date = el("input", { type: "date", id: "lg-date", "aria-label": "Date checked" }); date.value = today();
+  const scope = el("input", { type: "text", id: "lg-scope", "aria-label": "Scope", placeholder: "Scope, e.g. exact + similar, classes 9 & 41" });
+  const finding = el("input", { type: "text", id: "lg-find", "aria-label": "What you found", placeholder: "What you found, e.g. no game studio with this name" });
+  return el("form", { class: "fields", style: "margin-top:0", onsubmit: e => {
+    e.preventDefault();
+    fav.checks.push({ source: src.value, date: date.value || today(), scope: clean(scope.value, 160), finding: clean(finding.value, 240) });
+    saveFavs(); renderFavs(); renderCompare(); renderLookup(); toast("Check logged");
+  } }, el("p", { class: "small", text: `Logging for “${fav.name}”. Record only searches you actually ran.` }), src, date, scope, finding, el("button", { class: "btn primary", type: "submit" }, "Save check record"),
+    fav.checks.length ? el("p", { class: "small", text: `${fav.checks.length} check(s) logged so far. See the Shortlist tab.` }) : null);
+}
+
+/* ===================== word bank ===================== */
+function renderBankSummary() {
+  const host = $("#bank-summary"); host.replaceChildren();
+  const rows = CAT_KEYS.map(cat => {
+    const all = ALL[cat], b = all.filter(e => e.src === "builtin"), c = all.filter(e => e.src === "custom");
+    const hid = all.filter(e => HIDDEN.has(cat + ":" + e.key)).length;
+    return el("tr", {}, el("td", { text: CAT_PLURAL[cat] }), el("td", { class: "num", text: fmt(b.length) }), el("td", { class: "num", text: fmt(c.length) }), el("td", { class: "num", text: fmt(hid) }), el("td", { class: "num", text: fmt(BANK[cat].length) }));
+  });
+  const btn = el("button", { class: "btn small", type: "button", onclick: () => renderModeCounts(out) }, "Count combinations for all modes");
+  const out = el("div");
+  host.append(el("h3", { text: "Vocabulary counts (calculated from the data)" }),
+    el("div", { class: "tablewrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["Category", "Built-in", "Mine", "Hidden", "Active"].map(h => el("th", { text: h })))), el("tbody", {}, rows))),
+    el("p", { class: "small", text: `Suffix counts exclude the “no suffix” option. Conventional: ${BANK.suffix.filter(s => s.style === "conventional").length}, experimental: ${BANK.suffix.filter(s => s.style === "experimental").length}. Known-studio skip list: ${BLOCK_BASE.size + BLOCK_FULL.size} names.` }),
+    el("div", { class: "row" }, btn), out);
+}
+function renderModeCounts(out) {
+  out.replaceChildren();
+  const rows = Object.keys(MODES).map(m => {
+    const E = enumerate(m, slotDefs(m).map(() => false));
+    return el("tr", {}, el("td", { text: MODES[m].label }), el("td", { class: "num", text: fmt(E.theoretical) }), el("td", { class: "num", text: fmt(E.total) }));
+  });
+  out.append(el("div", { class: "tablewrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["Mode", "Theoretical (pools multiplied)", "Valid after rules + filters"].map(h => el("th", { text: h })))), el("tbody", {}, rows))),
+    el("p", { class: "small", text: "Theoretical = filtered word pools multiplied together, before pairing, length, alliteration and suffix rules. Valid = names the machine can actually produce right now." }));
+}
+function tagText(e) {
+  const t = [];
+  if (e.themes.length) t.push(e.themes.join(", "));
+  if (e.tones.length) t.push("tone: " + e.tones.join(", "));
+  if (e.kind !== "word") t.push(KIND[e.kind] + (e.lang ? ` (${e.lang})` : ""));
+  if (e.cat === "mod" && e.role !== "adj") t.push("role: " + e.role);
+  if (e.cat === "core") t.push(e.nk === "mass" ? "uncountable" : "plural: " + e.pl);
+  if (e.cat === "suffix") t.push(e.style);
+  if (e.groups.length) t.push("group: " + e.groups.join(", "));
+  if (e.exp) t.push("experimental only");
+  return t.join(" · ");
+}
+let editing = null;
+function renderBank() {
+  const q = $("#b-search").value.trim().toLowerCase(), cat = $("#b-cat").value, src = $("#b-src").value;
+  const rows = [];
+  for (const c of CAT_KEYS) if (cat === "all" || cat === c) for (const e of ALL[c]) {
+    const hid = HIDDEN.has(c + ":" + e.key);
+    if (src === "builtin" && e.src !== "builtin") continue;
+    if (src === "custom" && e.src !== "custom") continue;
+    if (src === "hidden" && !hid) continue;
+    if (q && !(e.text + " " + e.mean + " " + tagText(e)).toLowerCase().includes(q)) continue;
+    rows.push([e, hid]);
+  }
+  $("#b-count").textContent = `${fmt(rows.length)} entries`;
+  const body = $("#b-body"); body.replaceChildren();
+  const frag = document.createDocumentFragment();
+  for (const [e, hid] of rows.slice(0, 600)) {
+    if (editing && editing.cat === e.cat && editing.key === e.key) { frag.append(editRow(e)); continue; }
+    const acts = e.src === "custom"
+      ? [el("button", { class: "btn small", type: "button", onclick: () => { editing = { cat: e.cat, key: e.key }; renderBank(); } }, "Edit"), (() => { const b = el("button", { class: "btn small danger", type: "button" }, "Remove"); confirmClick(b, "Remove", () => removeCustom(e)); return b; })()]
+      : [el("button", { class: "btn small", type: "button", onclick: () => { hid ? HIDDEN.delete(e.cat + ":" + e.key) : HIDDEN.add(e.cat + ":" + e.key); saveCustom(); rebuild(); } }, hid ? "Restore" : "Hide")];
+    frag.append(el("tr", {}, el("td", {}, el("b", { text: e.text })), el("td", { text: CATS[e.cat] }),
+      el("td", {}, el("span", { class: "badge " + (hid ? "b-hidden" : e.src === "custom" ? "b-custom" : "b-builtin"), text: hid ? "hidden" : e.src === "custom" ? "mine" : "built-in" })),
+      el("td", { class: "small", text: tagText(e) }), el("td", { class: "small", text: [e.mean, e.say && "say " + e.say].filter(Boolean).join(" · ") || "—" }), el("td", {}, el("div", { class: "row" }, acts))));
+  }
+  if (rows.length > 600) frag.append(el("tr", {}, el("td", { colspan: "6", class: "small", text: `Showing the first 600 of ${fmt(rows.length)}. Search to narrow the list.` })));
+  body.append(frag);
+}
+function editRow(e) {
+  const inp = el("input", { type: "text", "aria-label": "Edit entry line" }); inp.value = e.line;
+  const save = () => {
+    const line = inp.value.trim();
+    const parsed = parseLines(line, e.cat, "custom");
+    if (!parsed.length) { toast("The entry can't be empty"); return; }
+    const k = parsed[0].key;
+    if (k !== e.key && ALL[e.cat].some(x => x.key === k)) { toast("That entry already exists"); return; }
+    const i = CUSTOM[e.cat].findIndex(l => norm(cleanEntry(l.split("|")[0])) === e.key);
+    if (i >= 0) CUSTOM[e.cat][i] = line;
+    editing = null; saveCustom(); rebuild(); toast("Saved");
+  };
+  inp.addEventListener("keydown", ev => { if (ev.key === "Enter") save(); if (ev.key === "Escape") { editing = null; renderBank(); } });
+  setTimeout(() => inp.focus(), 0);
+  return el("tr", {}, el("td", { colspan: "5" }, inp), el("td", {}, el("div", { class: "row" }, el("button", { class: "btn small primary", type: "button", onclick: save }, "Save"), el("button", { class: "btn small", type: "button", onclick: () => { editing = null; renderBank(); } }, "Cancel"))));
+}
+function removeCustom(e) {
+  CUSTOM[e.cat] = CUSTOM[e.cat].filter(l => norm(cleanEntry(l.split("|")[0])) !== e.key);
+  saveCustom(); rebuild(); toast("Removed");
+}
+function rebuild() {
+  const keep = state.current ? snapOf(state.current) : null;
+  buildBank();
+  let c = keep && resolveSnap(keep);
+  if (c && slotDefs(c.mode).some((d, i) => d.cat !== "suffix" && HIDDEN.has(d.cat + ":" + c.parts[i].key))) c = null;
+  if (!c) { resetLocks(); c = instantPick(state.mode); }
+  state.current = c;
+  buildReels(); if (c) slotDefs().forEach((d, i) => paintReel(i));
+  syncControls(); renderResult(); renderBank(); renderBankSummary(); renderComboLine(); renderHow(); setBusy(false);
+}
+
+/* add words with preview */
+let pending = null;
+function previewAdd(cat, text) {
+  const out = $("#a-out"); out.replaceChildren();
+  const lines = String(text || "").split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (!lines.length) { out.append(el("div", { class: "notice", text: "Type at least one entry, one per line." })); return; }
+  const seen = new Set(), rows = [], add = [];
+  for (const raw of lines.slice(0, 500)) {
+    if (raw.startsWith("@") || raw.startsWith("#")) { rows.push([raw, "", "Skipped (defaults and comments are for the built-in file)"]); continue; }
+    const t = cleanEntry(raw.split("|")[0]);
+    const key = norm(t);
+    let status;
+    const maxWords = cat === "phrase" ? 4 : cat === "suffix" ? 2 : 3;
+    if (!t) status = "Skipped: empty after removing symbols";
+    else if (t.split(" ").length > maxWords) status = `Skipped: more than ${maxWords} words`;
+    else if (seen.has(key)) status = "Skipped: repeated in this list";
+    else if (ALL[cat].some(e => e.key === key && e.src === "builtin")) status = "Skipped: already built in";
+    else if (ALL[cat].some(e => e.key === key)) status = "Skipped: already in My words";
+    else { status = "New"; add.push([t, raw]); }
+    seen.add(key); rows.push([raw, t, status]);
+  }
+  pending = { cat, add };
+  out.append(el("div", { class: "tablewrap" }, el("table", {}, el("thead", {}, el("tr", {}, ["You typed", "Will be added as", "Status"].map(h => el("th", { text: h })))),
+    el("tbody", {}, rows.map(([r, t, s]) => el("tr", {}, el("td", { class: "mono", text: r }), el("td", { text: t || "—" }), el("td", { text: s })))))),
+    el("div", { class: "row", style: "margin-top:8px" },
+      el("button", { class: "btn primary", type: "button", disabled: add.length ? null : true, onclick: commitAdd }, `Add ${add.length} new ${add.length === 1 ? "entry" : "entries"} to ${CAT_PLURAL[cat]}`),
+      el("span", { class: "small", text: lines.length > 500 ? "Only the first 500 lines are read." : "" })));
+}
+function commitAdd() {
+  if (!pending || !pending.add.length) return;
+  const { cat, add } = pending;
+  for (const [t, raw] of add) { const opts = raw.includes("|") ? raw.slice(raw.indexOf("|")) : ""; CUSTOM[cat].push((t + " " + opts).trim()); }
+  saveCustom(); pending = null; $("#a-text").value = ""; $("#a-out").replaceChildren(el("div", { class: "notice info", text: `Added ${add.length} to ${CAT_PLURAL[cat]}.` }));
+  rebuild(); toast("Words added");
+}
+function importBank(j) {
+  const rep = $("#bank-report"); rep.replaceChildren();
+  if (!j || typeof j !== "object" || !j.custom) { rep.append(el("div", { class: "notice", text: "That file isn't a word-bank export (expected a \"custom\" object)." })); return; }
+  const counts = {}; let total = 0; const plan = {};
+  for (const cat of CAT_KEYS) {
+    const lines = Array.isArray(j.custom[cat]) ? j.custom[cat].map(String).slice(0, 2000) : [];
+    const seen = new Set(ALL[cat].map(e => e.key)); plan[cat] = [];
+    for (const l of lines) { const t = cleanEntry(l.split("|")[0]); const k = norm(t); if (!t || seen.has(k)) continue; seen.add(k); plan[cat].push(l.trim()); }
+    counts[cat] = plan[cat].length; total += plan[cat].length;
+  }
+  const hid = Array.isArray(j.hidden) ? j.hidden.map(String).filter(h => /^(mod|core|single|phrase|suffix):/.test(h)) : [];
+  rep.append(el("div", { class: "notice info" }, `Preview: ${total} new entries (${CAT_KEYS.map(c => `${CAT_PLURAL[c]} ${counts[c]}`).join(", ")}), ${hid.length} hidden built-ins. Duplicates are skipped. `,
+    el("button", { class: "btn small primary", type: "button", onclick: () => { for (const c of CAT_KEYS) CUSTOM[c].push(...plan[c]); hid.forEach(h => HIDDEN.add(h)); saveCustom(); rebuild(); rep.replaceChildren(el("div", { class: "notice info", text: `Imported ${total} entries.` })); } }, "Import")));
+}
+
+/* ===================== how it works ===================== */
+function renderHow() {
+  const host = $("#how-out"); host.replaceChildren();
+  host.append(
+    el("h3", { text: "How a roll is chosen" }),
+    el("ol", {}, [
+      "The machine builds a pool for each unlocked reel from your filters. A locked reel keeps its entry.",
+      "It checks every combination against the rules below and counts the valid full names, suffix included.",
+      "It picks one valid name at random. Every valid name has the same chance; a base with more fitting suffixes is picked more often only because it has more valid full names.",
+      "The reels then animate toward that result. The animation never changes the outcome.",
+      "If the result exactly repeats the previous name and other names exist, it redraws (up to 5 times)."
+    ].map(t => el("li", { text: t }))),
+    el("h3", { text: "Rules that always apply" }),
+    el("ul", {}, [
+      "No repeated words: the same word or word stem can't appear twice (Golden Gold, Starlit Starling, Paper Paperweight).",
+      "No redundant pairs: words sharing a meaning group are not combined (Lunar Moon, Misty Fog, Frozen Frost).",
+      "Number words take plurals: Seven Wolves, Hundred Lanterns. Uncountable nouns (Rain, Gravity) never follow a number.",
+      "No suffix that repeats a word in the name, and no suffix after a name that already ends in a studio-like word (Workshop, Atelier).",
+      "At most five words, and never longer than your maximum length (spaces count).",
+      "Phrases are kept whole: Ground Zero is never split into Ground + something else.",
+      "Names on a short list of well-known studios are skipped. That list is a courtesy, not a legal check."
+    ].map(t => el("li", { text: t }))),
+    el("h3", { text: "Coherent vs Experimental" }),
+    el("p", { text: "Coherent mode skips tone pairings that usually read as a contradiction (dark + playful, dark + bright, elegant + playful) unless the two words also share a tone, and leaves out a handful of entries marked experimental-only (Pickle, Toaster, Hullabaloo…). Experimental mode keeps the grammar and spacing rules but lets those stranger pairings through." }),
+    el("h3", { text: "Alliteration" }),
+    el("p", { text: "Words are compared by their opening sound, using simple spelling rules (C before E/I sounds like S, PH like F, KN like N). Small words like “and” and “of” are ignored. Allow a little: blocks three or more words with the same opening sound (Silver Sparrow Studios). Avoid: blocks any two neighbors with the same sound. Prefer: requires at least one neighboring pair. These are spelling heuristics, so they will sometimes miss or over-flag." }),
+    el("h3", { text: "Themes, tones and word types" }),
+    el("p", { text: "Each entry carries themes and tones written by hand. In Composed mode a theme or tone filter needs only one of the two words to match, so you still get contrast (Iron Orchard). Real words, proper names, invented words and non-English words are labeled; non-English words list their language, meaning and pronunciation." }),
+    el("p", { class: "small", text: `Themes: ${THEME_KEYS.filter(t => t !== "custom").map(t => THEMES[t]).join(", ")}. Tones: ${TONE_KEYS.map(t => TONES[t]).join(", ")}.` }),
+    el("h3", { text: "What this tool does not do" }),
+    el("ul", {}, [
+      "It does not score or rank names. Length, word count and syllable estimates are mechanical facts, not quality.",
+      "It does not check availability. A name is “checked” here only when you log a search you ran, with its source, date and scope.",
+      "It does not prove a name is free of trademarks or unwanted meanings in other languages."
+    ].map(t => el("li", { text: t })))
+  );
+}
+
+/* ===================== controls ===================== */
+function renderComboLine() {
+  const defs = slotDefs();
+  const E = enumerate(state.mode, defs.map(() => false));
+  let txt = `${MODES[state.mode].label}: ${fmt(E.total)} valid names (theoretical ${fmt(E.theoretical)} before rules).`;
+  if (state.locks.slice(0, defs.length).some(Boolean)) txt += ` With your locks: ${fmt(enumerate(state.mode, defs.map((d, i) => state.locks[i])).total)}.`;
+  $("#combo-line").textContent = txt;
+}
+function renderLockNotes() {
+  const host = $("#lock-notes"); host.replaceChildren();
+  const c = state.current; if (!c) return;
+  slotDefs().forEach((d, i) => {
+    if (!state.locks[i]) return;
+    const e = slotEntry(c, i); if (e.empty) return;
+    const why = [];
+    if (!entryOk(e)) why.push("word-type or mode filters");
+    if (d.cat !== "suffix" && c.mode !== "composed" && (!themeHit(e.themeMask) || !toneHit(e.toneMask))) why.push("theme/tone");
+    if (d.cat === "suffix" && state.sufStyle === "conventional" && e.style === "experimental") why.push("suffix words");
+    if (why.length) host.append(el("div", { class: "notice", text: `Locked “${e.text}” is outside your ${why.join(" and ")} filter; the lock keeps it.` }));
+  });
+}
+function syncControls() {
+  for (const m of Object.keys(MODES)) $("#mode-" + m).setAttribute("aria-pressed", String(state.mode === m));
+  $("#style-coherent").setAttribute("aria-pressed", String(state.style === "coherent"));
+  $("#style-experimental").setAttribute("aria-pressed", String(state.style === "experimental"));
+  const th = $("#f-theme"); th.replaceChildren(el("option", { value: "all", text: "Any theme" }), ...THEME_KEYS.map(k => el("option", { value: k, text: THEMES[k] })));
+  th.value = state.theme;
+  const to = $("#f-tone"); to.replaceChildren(el("option", { value: "all", text: "Any tone" }), ...TONE_KEYS.map(k => el("option", { value: k, text: TONES[k] })));
+  to.value = state.tone;
+  $("#f-len").value = state.maxLen; $("#f-len-v").textContent = state.maxLen;
+  $("#f-suffix").value = state.suffix; $("#f-sufstyle").value = state.sufStyle; $("#f-allit").value = state.allit;
+  $("#f-invented").checked = state.invented; $("#f-foreign").checked = state.foreign; $("#f-vocab").value = state.vocab;
+  $("#f-sound").checked = state.sound; $("#f-motion").checked = reduceMotion();
+  document.body.classList.toggle("reduce-motion", reduceMotion());
+}
+function filtersChanged(reelsChanged = false) {
+  saveSettings(); syncControls();
+  if (reelsChanged) {
+    resetLocks();
+    const c = state.current;
+    if (c && state.suffix === "none") c.suffix = EMPTY;
+    if (c && state.suffix === "always" && c.suffix.empty) { const b = baseOf(c); const ok = b ? suffixPool().filter(s => sufOk(b, s)) : []; if (ok.length) c.suffix = pick(ok); }
+    buildReels(); if (c) slotDefs().forEach((d, i) => paintReel(i)); renderResult();
+  }
+  renderComboLine(); renderLockNotes(); setBusy(false);
+  setStatus("Filters apply to the next roll.");
+}
+function selectTab(id) {
+  for (const t of document.querySelectorAll('[role="tab"]')) {
+    const on = t.id === id; t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1;
+    $("#" + t.getAttribute("aria-controls")).hidden = !on;
+  }
+  if (id === "tab-look") renderLookup();
+  try { sessionStorage.setItem("snr:tab", id); } catch (e) {}
+}
+
+function wire() {
+  $("#roll").addEventListener("click", () => { sfx.ensure(); roll(); });
+  for (const m of Object.keys(MODES)) $("#mode-" + m).addEventListener("click", () => setMode(m));
+  $("#style-coherent").addEventListener("click", () => { state.style = "coherent"; filtersChanged(); });
+  $("#style-experimental").addEventListener("click", () => { state.style = "experimental"; filtersChanged(); });
+  $("#fav").addEventListener("click", addFavorite);
+  $("#copy").addEventListener("click", () => state.current && copyText(nameOf(state.current).full));
+  $("#lookup").addEventListener("click", () => { if (!state.current) return; const n = nameOf(state.current); openLookup(n.full, n.base, null); });
+  $("#f-theme").addEventListener("change", e => { state.theme = e.target.value; filtersChanged(); });
+  $("#f-tone").addEventListener("change", e => { state.tone = e.target.value; filtersChanged(); });
+  $("#f-len").addEventListener("input", e => { state.maxLen = +e.target.value; $("#f-len-v").textContent = state.maxLen; });
+  $("#f-len").addEventListener("change", () => filtersChanged());
+  $("#f-suffix").addEventListener("change", e => { state.suffix = e.target.value; filtersChanged(true); });
+  $("#f-sufstyle").addEventListener("change", e => { state.sufStyle = e.target.value; filtersChanged(); });
+  $("#f-allit").addEventListener("change", e => { state.allit = e.target.value; filtersChanged(); });
+  $("#f-invented").addEventListener("change", e => { state.invented = e.target.checked; filtersChanged(); });
+  $("#f-foreign").addEventListener("change", e => { state.foreign = e.target.checked; filtersChanged(); });
+  $("#f-vocab").addEventListener("change", e => { state.vocab = e.target.value; filtersChanged(); });
+  $("#f-sound").addEventListener("change", e => { state.sound = e.target.checked; if (state.sound) { sfx.ensure(); sfx.thunk(); } saveSettings(); });
+  $("#f-motion").addEventListener("change", e => { state.motion = e.target.checked; filtersChanged(); });
+  $("#reset").addEventListener("click", () => { const keep = { mode: state.mode, sound: state.sound, motion: state.motion }; Object.assign(state, DEFAULTS, keep); filtersChanged(true); toast("Filters reset"); });
+
+  $("#s-filter").addEventListener("change", renderFavs);
+  $("#exp-json").addEventListener("click", () => openDialog("Saved names (JSON)", JSON.stringify({ format: "studio-name-randomizer/favorites@1", exported_at: new Date().toISOString(), note: "Generated names are unverified unless a check record says otherwise.", favorites }, null, 2), { name: "studio-names.json", type: "application/json" }));
+  $("#exp-txt").addEventListener("click", () => openDialog("Saved names (text)", favorites.length ? favorites.map(f => [
+    f.name + (f.label ? `  [${f.label}]` : ""),
+    f.notes ? "Notes: " + f.notes : null,
+    ...CHECKLIST.filter(([k]) => f.checklist[k]).map(([k, q]) => `${q} ${({ yes: "Yes", no: "No", unsure: "Not sure" })[f.checklist[k]]}`),
+    ...f.checks.map(c => `Checked ${c.date} on ${c.source}: ${c.scope || "scope not noted"}${c.finding ? " → " + c.finding : ""}`),
+    f.checks.length ? null : "No checks logged (unverified)"
+  ].filter(Boolean).join("\n")).join("\n\n") : "(no saved names)", { name: "studio-names.txt", type: "text/plain" }));
+  $("#imp-fav").addEventListener("change", async e => {
+    const file = e.target.files[0]; e.target.value = ""; if (!file) return;
+    try {
+      const j = JSON.parse(await file.text());
+      if (!j || !Array.isArray(j.favorites)) throw new Error("expected a \"favorites\" array");
+      let added = 0;
+      for (const f of j.favorites.slice(0, 1000)) {
+        const name = clean(f.name, 80); if (!name || favorites.some(x => x.name === name)) continue;
+        favorites.push({ id: uid(), name, base: clean(f.base || name, 80), mode: MODES[f.mode] ? f.mode : "composed", parts: Array.isArray(f.parts) ? f.parts.filter(p => Array.isArray(p) && CATS[p[0]]).map(p => [p[0], norm(p[1])]) : [], suffix: norm(f.suffix || ""),
+          label: ["shortlist", "maybe", ""].includes(f.label) ? f.label : "", notes: clean(f.notes, 2000), checklist: typeof f.checklist === "object" && f.checklist ? Object.fromEntries(CHECKLIST.map(([k]) => [k, ["yes", "no", "unsure"].includes(f.checklist[k]) ? f.checklist[k] : ""])) : {},
+          checks: Array.isArray(f.checks) ? f.checks.slice(0, 100).map(c => ({ source: clean(c.source, 60), date: clean(c.date, 10), scope: clean(c.scope, 160), finding: clean(c.finding, 240) })) : [], compare: false, at: clean(f.at, 30) || new Date().toISOString() });
+        added++;
+      }
+      saveFavs(); renderFavs(); renderCompare(); toast(`Imported ${added} saved name(s)`);
+    } catch (err) { toast("Couldn't import: " + err.message); }
+  });
+  confirmClick($("#clear-fav"), "Clear all saved names", () => { favorites = []; saveFavs(); renderFavs(); renderCompare(); renderResult(); toast("Saved names cleared"); });
+  confirmClick($("#clear-hist"), "Clear history", () => { history = []; store.set("history", history); renderHistory(); toast("History cleared"); });
+
+  $("#dlg-close").addEventListener("click", () => { const d = $("#dlg"); d.close ? d.close() : d.removeAttribute("open"); });
+  $("#dlg-copy").addEventListener("click", () => copyText($("#dlg-text").value));
+  $("#dlg-dl").addEventListener("click", () => dlgFile && download(dlgFile.name, $("#dlg-text").value, dlgFile.type));
+
+  const bc = $("#b-cat"); bc.append(el("option", { value: "all", text: "All categories" }), ...CAT_KEYS.map(c => el("option", { value: c, text: CAT_PLURAL[c] })));
+  const ac = $("#a-cat"); ac.append(...CAT_KEYS.map(c => el("option", { value: c, text: CAT_PLURAL[c] })));
+  ["#b-search", "#b-cat", "#b-src"].forEach(s => $(s).addEventListener("input", () => { editing = null; renderBank(); }));
+  $("#a-preview").addEventListener("click", () => previewAdd($("#a-cat").value, $("#a-text").value));
+  $("#bank-export").addEventListener("click", () => openDialog("My words (JSON)", JSON.stringify({ format: "studio-name-randomizer/word-bank@1", exported_at: new Date().toISOString(), custom: CUSTOM, hidden: [...HIDDEN] }, null, 2), { name: "studio-name-words.json", type: "application/json" }));
+  $("#bank-import").addEventListener("change", async e => {
+    const file = e.target.files[0]; e.target.value = ""; if (!file) return;
+    try { importBank(JSON.parse(await file.text())); } catch (err) { $("#bank-report").replaceChildren(el("div", { class: "notice", text: "Couldn't read that file: " + err.message })); }
+  });
+  confirmClick($("#bank-restore"), "Restore defaults", () => { CUSTOM = { mod: [], core: [], single: [], phrase: [], suffix: [] }; HIDDEN = new Set(); saveCustom(); rebuild(); toast("Defaults restored: your words removed, hidden words restored"); });
+
+  const tabs = [...document.querySelectorAll('[role="tab"]')];
+  tabs.forEach((t, i) => {
+    t.addEventListener("click", () => selectTab(t.id));
+    t.addEventListener("keydown", e => {
+      let j = null;
+      if (e.key === "ArrowRight") j = (i + 1) % tabs.length; else if (e.key === "ArrowLeft") j = (i - 1 + tabs.length) % tabs.length;
+      else if (e.key === "Home") j = 0; else if (e.key === "End") j = tabs.length - 1;
+      if (j != null) { e.preventDefault(); selectTab(tabs[j].id); tabs[j].focus(); }
+    });
+  });
+  document.addEventListener("keydown", e => {
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target; if (t.closest && t.closest("input,textarea,select,dialog,[contenteditable]")) return;
+    const k = e.key.toLowerCase();
+    if (k === "r") { e.preventDefault(); sfx.ensure(); roll(); }
+    else if (k === "1" || k === "2" || k === "3") { e.preventDefault(); toggleLock(+k - 1); }
+    else if (k === "f") { e.preventDefault(); addFavorite(); }
+    else if (k === "c") { e.preventDefault(); state.current && copyText(nameOf(state.current).full); }
+  });
+  let rz; addEventListener("resize", () => { clearTimeout(rz); rz = setTimeout(() => { if (!rolling && state.current) slotDefs().forEach((d, i) => paintReel(i)); }, 150); });
+  matchMedia("(prefers-reduced-motion: reduce)").addEventListener?.("change", syncControls);
+}
+
+/* ===================== boot ===================== */
+loadKnown();
+buildBank();
+function initialCombo() {
+  const find = (cat, key) => BANK[cat].find(e => e.key === key);
+  if (state.mode === "composed") {
+    const m = find("mod", "red"), c = find("core", "rain"), s = find("suffix", "interactive");
+    if (m && c && s && state.suffix !== "none") { const cand = { mode: "composed", parts: [m, c], suffix: s }; cand.base = composedBase(m, c); if (cand.base && sufOk(cand.base, s)) return cand; }
+  }
+  return instantPick(state.mode);
+}
+state.current = initialCombo();
+wire(); syncControls(); buildReels();
+if (state.current) slotDefs().forEach((d, i) => paintReel(i));
+renderResult(); renderFavs(); renderCompare(); renderHistory(); renderBank(); renderBankSummary(); renderHow(); setBusy(false);
+$("#combo-line").textContent = "Counting valid names…";
+setTimeout(renderComboLine, 30);
+try { const t = sessionStorage.getItem("snr:tab"); if (t && document.getElementById(t)) selectTab(t); } catch (e) {}
+if (!store.ok) setStatus("This browser is blocking storage, so saved names and words last only until you close the tab. Export them to keep them.", true);
+else if (!state.current) setStatus(diagnose(state.mode, slotDefs().map(() => false), enumerate(state.mode, slotDefs().map(() => false))), true);
+else setStatus(`Loaded ${fmt(BANK.mod.length)} modifiers, ${fmt(BANK.core.length)} core words, ${fmt(BANK.single.length)} standalone names, ${fmt(BANK.phrase.length)} phrases and ${fmt(BANK.suffix.length)} suffixes.`);
+
+</script>
+</body>
+</html>
