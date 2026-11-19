@@ -1,0 +1,19 @@
+{
+  "brandName": "Orbital Crow",
+  "studioName": "Orbital Crow Studios",
+  "productionUrl": "https://orbitalcrow.com",
+  "location": "Malaysia",
+
+  "contactEmail": "",
+  "robloxCommunityUrl": "",
+  "socialLinks": [],
+  "randomizerUrl": "",
+
+  "logos": {
+    "symbol": { "src": "", "width": 0, "height": 0, "alt": "Orbital Crow" },
+    "studioWordmark": { "src": "", "width": 0, "height": 0, "alt": "Orbital Crow Studios" },
+    "socialPreviewImage": { "src": "", "width": 0, "height": 0, "alt": "Orbital Crow" }
+  },
+
+  "deployAlongside": ["studio-tools/studio-randomizer"]
+}

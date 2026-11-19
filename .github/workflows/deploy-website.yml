@@ -1,0 +1,49 @@
+# Builds website/ and publishes it, together with the studio-name randomizer, to GitHub Pages.
+# One-time setup: repository Settings → Pages → Build and deployment → Source: "GitHub Actions".
+name: Deploy website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "website/**"
+      - "studio-tools/studio-randomizer/**"
+      - ".github/workflows/deploy-website.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Read Pages settings
+        id: pages
+        uses: actions/configure-pages@v5
+      # base_path is "/project-x" on the github.io address and "" once orbitalcrow.com is connected,
+      # so the same build works before and after the custom domain switch.
+      - name: Build website
+        run: node website/build.mjs --base "${{ steps.pages.outputs.base_path }}"
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/dist
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
