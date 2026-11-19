@@ -99,6 +99,22 @@ No logo files were in the repository or attached when this was built, so the sit
 - **Not hidden:** it isn't linked from anywhere on the site, but anyone who types the address can open it. noindex keeps it out of search results; it does not make it private.
 - **Self-contained:** its file is `src/pages/web.html`, separate from the shared layout. To launch it later, turn it into a normal page: add an entry to the `pages` list in `build.mjs`, add `/web/` to the sitemap, and add a navigation link.
 
+## Planned growth
+
+The site is meant to grow beyond the studio page. Planned additions:
+
+- **Orbital Crow Web** at `/web/`: the website-building business page.
+- **Projects and games:** work that has been made or released.
+- **Clients:** client work and what clients say.
+
+The structure is ready for this. Each new page is one entry in the `pages` list in `build.mjs` plus one file in `src/pages/`, using the shared header, footer and styles. Add a navigation link (the `nav` list in `build.mjs`) only once a page has real content. A page with several items, like projects or client work, can repeat one small block of HTML per item, without a database or CMS.
+
+Before publishing these sections:
+
+- **Real items only:** show only real, finished projects and games, and only real clients. Get each client's permission before using their name, logo, screenshots or quotes.
+- **Hosting:** when `/web` starts selling services directly (prices, checkout, bookings), move hosting off GitHub Pages first, because its terms don't allow running an online business (see "Why GitHub Pages" above).
+- **Navigation:** once there are three or more top-level sections, check that the navigation still fits on phones.
+
 ## Deployment (GitHub Pages)
 
 `.github/workflows/deploy-website.yml` builds the site and publishes it whenever `website/` or the studio randomizer changes on `main`. It can also be run by hand from the **Actions** tab.
