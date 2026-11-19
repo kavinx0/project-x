@@ -1,0 +1,39 @@
+<section class="studio-intro" aria-labelledby="games-title">
+  <div class="wrap studio-intro-inner">
+    {{{orbitSmall}}}
+    <div class="studio-copy">
+    {{#if studioLogo}}<img class="studio-logo" src="{{studioLogo}}" width="{{studioLogoWidth}}" height="{{studioLogoHeight}}" alt="{{studioLogoAlt}}">{{/if}}
+    <p class="eyebrow">A studio by {{brandName}}</p>
+    <h1 id="games-title" class="display display-studio">{{studioName}}</h1>
+    <p class="lede">{{studioName}} is an independent game studio that I run on my own from {{location}}. It’s starting on Roblox and isn’t tied to a single genre. The aim is to make games people want to come back to.</p>
+    </div>
+  </div>
+</section>
+
+<section class="band band-ivory" aria-labelledby="status-title">
+  <div class="wrap status">
+    <h2 id="status-title" class="section-title">Where things stand</h2>
+    <dl class="facts">
+      <div><dt>Status</dt><dd>Preparing the first project</dd></div>
+      <div><dt>Platform</dt><dd>Roblox, to begin with</dd></div>
+      <div><dt>Team</dt><dd>One founder</dd></div>
+      <div><dt>Based in</dt><dd>{{location}}</dd></div>
+    </dl>
+    <div class="prose">
+      <p>The studio is choosing and planning its first game. There’s no game, screenshot or release date to share yet. I would rather show real work than promise it early.</p>
+    </div>
+  </div>
+</section>
+
+<section class="band" aria-labelledby="follow-title">
+  <div class="wrap follow">
+    <h2 id="follow-title" class="section-title">Follow along</h2>
+    <div class="prose">
+      <p>Project news and development updates will be shared as they become available, along with chances to give feedback once there is something to try.</p>
+      {{#if robloxCommunityUrl}}<p><a class="button" href="{{robloxCommunityUrl}}" rel="noopener">Join the Roblox community <span aria-hidden="true">→</span></a></p>{{/if}}
+      {{#if contactEmail}}<p>Questions can go to <a class="text-link" href="mailto:{{contactEmail}}">{{contactEmail}}</a>.</p>{{/if}}
+      {{{socialList}}}
+    </div>
+    <p class="back"><a class="text-link" href="{{base}}/"><span aria-hidden="true">←</span> Back to {{brandName}}</a></p>
+  </div>
+</section>

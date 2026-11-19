@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{title}}</title>
+<meta name="description" content="{{description}}">
+{{#if noindex}}<meta name="robots" content="noindex">
+{{/if}}{{#if canonical}}<link rel="canonical" href="{{canonical}}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{{brandName}}">
+<meta property="og:title" content="{{ogTitle}}">
+<meta property="og:description" content="{{description}}">
+<meta property="og:url" content="{{canonical}}">
+<meta property="og:locale" content="en_MY">
+{{/if}}{{#if ogImage}}<meta property="og:image" content="{{ogImage}}">
+<meta property="og:image:alt" content="{{ogImageAlt}}">
+<meta name="twitter:card" content="summary_large_image">
+{{/if}}{{#unless ogImage}}<meta name="twitter:card" content="summary">
+{{/unless}}<meta name="theme-color" content="#101010">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="{{base}}/assets/img/favicon.svg" type="image/svg+xml">
+<link rel="preload" href="{{base}}/assets/fonts/bricolage-grotesque-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="{{base}}/assets/fonts/atkinson-hyperlegible-next-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="{{base}}/assets/css/site.css?v={{cssVersion}}">
+{{{structuredData}}}</head>
+<body class="page-{{pageId}}">
+<a class="skip-link" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="wrap header-inner">
+    <a class="brand" href="{{base}}/" aria-label="{{brandName}} home">{{{headerMark}}}<span class="brand-name">{{brandName}}</span></a>
+    <nav class="site-nav" aria-label="Main">
+      <ul>{{{navItems}}}</ul>
+    </nav>
+  </div>
+</header>
+<main id="main" tabindex="-1">
+{{{content}}}
+</main>
+<footer class="site-footer">
+  <div class="wrap footer-inner">
+    <div class="footer-brand">
+      <p class="footer-name">{{brandName}}</p>
+      <p class="footer-meta">Independent, founded in {{location}}. © {{year}} {{brandName}}.</p>
+    </div>
+    <nav class="footer-nav" aria-label="Footer">
+      <ul>{{{footerItems}}}</ul>
+    </nav>
+  </div>
+</footer>
+</body>
+</html>
