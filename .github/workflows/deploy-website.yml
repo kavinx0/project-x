@@ -2,13 +2,11 @@
 # One-time setup: repository Settings → Pages → Build and deployment → Source: "GitHub Actions".
 name: Deploy website
 
+# NOTE: the Orbital Crow website is currently hosted on Netlify, and this repository's
+# GitHub Pages site is used by deploy-pages-tools.yml. A repository has only one Pages site,
+# so this workflow no longer runs automatically: running it would replace the tools on Pages.
+# Run it manually only if you move the website back to GitHub Pages.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "website/**"
-      - "studio-tools/studio-randomizer/**"
-      - ".github/workflows/deploy-website.yml"
   workflow_dispatch:
 
 permissions:
