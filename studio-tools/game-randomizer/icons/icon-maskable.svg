@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="#2a1340"/><g transform="translate(256 256) scale(0.74) translate(-256 -256)">
+  <rect x="64" y="150" width="384" height="200" rx="22" fill="#0e0716" stroke="#ffd21f" stroke-width="10"/>
+  <g stroke="#0e0716" stroke-width="8">
+    <rect x="88" y="176" width="104" height="148" rx="10" fill="#fbf8ff"/>
+    <rect x="204" y="176" width="104" height="148" rx="10" fill="#fbf8ff"/>
+    <rect x="320" y="176" width="104" height="148" rx="10" fill="#fbf8ff"/>
+  </g>
+  <g fill="#5b2a86"><rect x="106" y="236" width="68" height="28" rx="6"/><rect x="222" y="236" width="68" height="28" rx="6"/><rect x="338" y="236" width="68" height="28" rx="6"/></g>
+  <g stroke="#55b8c4" stroke-width="5"><path d="M94 214h92M210 214h92M326 214h92M94 290h92M210 290h92M326 290h92"/></g>
+  <rect x="120" y="372" width="272" height="50" rx="14" fill="#c81d4e" stroke="#0e0716" stroke-width="8"/>
+  <path d="M256 70l14 30 33 4-24 22 6 33-29-16-29 16 6-33-24-22 33-4z" fill="#ffd21f" stroke="#0e0716" stroke-width="6" stroke-linejoin="round"/>
+</g></svg>

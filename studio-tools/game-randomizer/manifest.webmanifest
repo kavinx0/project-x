@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "Roblox Game Idea Randomizer",
+  "short_name": "Idea Reels",
+  "description": "Slot-machine brainstorming tool for Roblox game titles: Verb / Determiner / Noun, with grammar rules. Works offline.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0e0716",
+  "theme_color": "#0e0716",
+  "lang": "en",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "icons/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

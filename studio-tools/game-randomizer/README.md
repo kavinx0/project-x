@@ -129,6 +129,40 @@ title,universe_id,playing,source,collected_at
 
 Rows merge by `universe_id`. Rows without one fall back to a normalized title (lowercase, bracketed tags and symbols removed). The app lists unknown words with their per-experience counts and a verb or noun guess. Nothing is added until you tick it. See `data/example-titles.csv`; its rows are format examples, not real games.
 
+## Installable app (PWA) and offline use
+
+The randomizer can be installed as an app and works offline after one online visit.
+
+| File | Purpose |
+|---|---|
+| `manifest.webmanifest` | App name ("Roblox Game Idea Randomizer", short name "Idea Reels"), standalone window, icons. `start_url` and `scope` are `./`, so they follow whatever folder the app is served from |
+| `sw.js` | Service worker. It caches the page, manifest and icons, and is limited to this folder |
+| `icons/` | Original app icons: 192 px, 512 px, a maskable 512 px for Android, an Apple touch icon, and SVG sources |
+| `../../.github/scripts/build-pages-tools.sh` | Assembles the GitHub Pages files and stamps `sw.js` with a content hash |
+| `../../.github/workflows/deploy-pages-tools.yml` | Publishes to GitHub Pages when these files change on `main` |
+
+- **Offline:** everything except the roblox.com game-page links (online only) works without a connection: rolling, filters, favorites, history, My words, CSV import and the vocabulary browser. The word lists and title sample are embedded in `index.html`, so there is nothing else to download.
+- **Updates:** each deploy produces a new service-worker version. Open copies show **Update available — reload** and wait for the click. If a spin is running, the reload waits for it to finish. Old caches are deleted after the switch.
+- **Saved data:** favorites, history, settings and My words stay in `localStorage` under the same `gir:` keys and format as before, so updates keep them. They are stored per browser, per device: they do not sync between computers or browsers. Use **Favorites → Export JSON / Import JSON** (and the My words export/import) to back up or move them.
+- **Opening the file directly:** the page still works as before, but install and offline need the hosted (https) version. Browsers don't run service workers for `file://` pages.
+
+### GitHub Pages settings (one time)
+
+1. Repository **Settings → Pages → Build and deployment → Source: GitHub Actions**. Leave **Custom domain** empty.
+2. Merge the change to `main`, or run **Actions → Deploy studio tools to Pages → Run workflow**.
+3. Open https://kavinx0.github.io/project-x/studio-tools/game-randomizer/
+
+The same deploy also publishes the studio-name randomizer at `/studio-tools/studio-randomizer/`. The Orbital Crow website is hosted on Netlify and is not affected. Its old GitHub Pages workflow (`deploy-website.yml`) is now manual-only, because a repository has only one Pages site and that workflow would otherwise overwrite the tools.
+
+### Installing on Windows (Chrome or Edge)
+
+1. Open the address above in Chrome or Edge and wait for the page to load.
+2. Click **Install app** in the page footer or on the **App & offline** tab, or the install icon at the right end of the address bar.
+   - Chrome menu: **⋮ → Cast, save and share → Install page as app**.
+   - Edge menu: **… → Apps → Install this site as an app**.
+   - Menu wording varies by browser version.
+3. Confirm. The app opens in its own window and appears in the Start menu. Uninstall it from the app window's menu or from Windows Settings → Apps.
+
 ## Optional: refreshing the data (live refresh upgrade)
 
 The app never fetches data itself: no browser API calls, no CORS proxies, no fake "live scan". A refresh is a separate job that writes a timestamped file:

@@ -1,0 +1,48 @@
+# Publishes the studio tools (game randomizer PWA + studio-name randomizer) to GitHub Pages:
+#   https://kavinx0.github.io/project-x/studio-tools/game-randomizer/
+# One-time setup: Settings → Pages → Build and deployment → Source: "GitHub Actions".
+# Does not touch the Orbital Crow website (hosted on Netlify) or any custom domain.
+name: Deploy studio tools to Pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "studio-tools/game-randomizer/index.html"
+      - "studio-tools/game-randomizer/manifest.webmanifest"
+      - "studio-tools/game-randomizer/sw.js"
+      - "studio-tools/game-randomizer/icons/**"
+      - "studio-tools/studio-randomizer/**"
+      - ".github/scripts/build-pages-tools.sh"
+      - ".github/workflows/deploy-pages-tools.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Read Pages settings
+        uses: actions/configure-pages@v5
+      - name: Assemble tools
+        run: bash .github/scripts/build-pages-tools.sh _site
+      - name: Upload site
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
